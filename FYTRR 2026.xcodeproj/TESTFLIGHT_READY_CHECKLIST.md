@@ -1,5 +1,7 @@
 # FYTRR Store Release Checklist
 
+See `AppStoreRelease/` for App Store metadata, review notes, privacy label draft, TestFlight plan, and current blockers.
+
 ## Release scope
 - AI Coach is hidden for this release.
 - Home is simplified to daily targets, top nearby meals, refresh, and map access.
@@ -30,6 +32,9 @@
 - Fill privacy nutrition labels for account, location, and restaurant search behavior.
 - Add support URL, marketing URL if available, privacy policy URL, description, keywords, and review notes.
 - Add beta/review notes explaining location is used to find nearby meal options.
+- Use `AppStoreRelease/APP_STORE_METADATA.md` for listing copy.
+- Use `AppStoreRelease/APP_REVIEW_NOTES.md` for reviewer notes.
+- Use `AppStoreRelease/PRIVACY_NUTRITION_LABEL.md` as the privacy answer draft.
 
 ## Pre-submit sanity tests
 - Sign in works.
