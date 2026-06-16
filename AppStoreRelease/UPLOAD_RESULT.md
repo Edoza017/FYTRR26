@@ -4,10 +4,16 @@
 
 Status: Uploaded successfully
 
+Latest uploaded build:
+- Version: `1.0`
+- Build: `2`
+- Uploaded: `2026-06-15`
+- Yelp API key: active key injected from a temporary local xcconfig; key was not committed to GitHub.
+
 Upload command completed:
 - `xcodebuild -exportArchive`
 - Destination: App Store Connect upload
-- Archive path: `/tmp/FYTRR-2026.xcarchive`
+- Archive path: `/tmp/FYTRR-2026-build2.xcarchive`
 
 Apple response:
 - Uploaded package is processing.
@@ -17,6 +23,7 @@ Apple response:
 
 - Simulator build succeeded.
 - iOS archive succeeded.
+- Archive `1.0` build `2` verified with non-placeholder `YELP_API_KEY` present in the built app plist.
 - App Store Connect export succeeded.
 - App Store Connect upload succeeded.
 
@@ -41,4 +48,3 @@ These warnings do not block the uploaded build, but crash symbolication for thos
 - Complete age rating.
 - Add review notes.
 - Run TestFlight or submit for review.
-

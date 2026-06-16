@@ -5,6 +5,6 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>FYTRR uses your location to find healthier food nearby.</string>
 	<key>YELP_API_KEY</key>
-	<string>YOUR_YELP_API_KEY</string>
+	<string>$(YELP_API_KEY)</string>
 </dict>
 </plist>
