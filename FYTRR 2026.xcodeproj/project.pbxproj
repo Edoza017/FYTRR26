@@ -445,6 +445,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = FYTRR;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FYTRR reads Apple Health calories, sleep, and fitness metrics to show your daily fuel balance.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FYTRR uses Health permissions only when you choose to connect Apple Health for fuel balance.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FYTRR uses your location to find healthier food nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -483,6 +484,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = FYTRR;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FYTRR reads Apple Health calories, sleep, and fitness metrics to show your daily fuel balance.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FYTRR uses Health permissions only when you choose to connect Apple Health for fuel balance.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FYTRR uses your location to find healthier food nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
