@@ -9,6 +9,7 @@ final class LocationManager: NSObject, ObservableObject {
     @Published var location: CLLocation?
     @Published var authorizationStatus: CLAuthorizationStatus?
     @Published var locationErrorMessage: String?
+    @Published var isRequestingLocation = false
 
     override init() {
         super.init()
@@ -24,16 +25,20 @@ final class LocationManager: NSObject, ObservableObject {
 
         switch status {
         case .notDetermined:
+            isRequestingLocation = true
             manager.requestWhenInUseAuthorization()
 
         case .authorizedWhenInUse, .authorizedAlways:
+            isRequestingLocation = true
             manager.requestLocation()
             manager.startUpdatingLocation()
 
         case .denied, .restricted:
+            isRequestingLocation = false
             locationErrorMessage = "Location permission denied. Open Settings to enable it."
 
         @unknown default:
+            isRequestingLocation = false
             locationErrorMessage = "Unknown location authorization status."
         }
     }
@@ -55,8 +60,11 @@ extension LocationManager: CLLocationManagerDelegate {
 
         if status == .authorizedWhenInUse || status == .authorizedAlways {
             locationErrorMessage = nil
+            isRequestingLocation = true
             manager.requestLocation()
             manager.startUpdatingLocation()
+        } else if status == .denied || status == .restricted {
+            isRequestingLocation = false
         }
     }
 
@@ -66,6 +74,7 @@ extension LocationManager: CLLocationManagerDelegate {
 
         DispatchQueue.main.async {
             self.location = loc
+            self.isRequestingLocation = false
         }
 
         locationErrorMessage = nil
@@ -78,6 +87,7 @@ extension LocationManager: CLLocationManagerDelegate {
             return
         }
         DispatchQueue.main.async {
+            self.isRequestingLocation = false
             self.locationErrorMessage = error.localizedDescription
         }
     }

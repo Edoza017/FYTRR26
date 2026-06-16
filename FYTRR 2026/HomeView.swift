@@ -284,6 +284,16 @@ struct HomeView: View {
         restaurants.contains { $0.id.hasPrefix("mock-") }
     }
 
+    private var isLocationDenied: Bool {
+        locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted
+    }
+
+    private var isWaitingForLocation: Bool {
+        locationManager.isRequestingLocation
+            || ((locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways)
+                && locationManager.location == nil)
+    }
+
     private var canSearch: Bool {
         true
     }
@@ -302,8 +312,12 @@ struct HomeView: View {
     }
 
     private var fuelEmptyStateMessage: String {
-        if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+        if isLocationDenied {
             return "Location is off. Enable location in Map controls to get local fuel spots."
+        }
+
+        if isWaitingForLocation {
+            return "Finding nearby fuel spots. Keep FYTRR open for a moment while iOS gets your location."
         }
 
         if yelpStatusText.contains("missing") || yelpStatusText.contains("placeholder") {
@@ -318,11 +332,14 @@ struct HomeView: View {
             if lowered.contains("timed out") {
                 return "Request timed out. Try refresh or reduce radius."
             }
+            if lowered.contains("location") {
+                return "Location is still warming up. Tap Refresh Location or search a city."
+            }
             return errorMessage
         }
 
         if isUsingFallbackData {
-            return "Showing sample fuel spots while live data is unavailable."
+            return "Showing preview fuel spots. Enable location or search a city for live nearby matches."
         }
 
         return activeFuelFilters.isEmpty
@@ -942,7 +959,7 @@ struct HomeView: View {
                         .font(.custom("AvenirNext-Regular", size: 14))
                         .foregroundStyle(BrandPalette.textSecondary)
                 } else {
-                    Text("Permission granted. Tap Enable Location to fetch your current pin.")
+                    Text("Permission granted. FYTRR is finding your current area.")
                         .font(.custom("AvenirNext-Regular", size: 14))
                         .foregroundStyle(BrandPalette.textSecondary)
                 }
@@ -997,7 +1014,7 @@ struct HomeView: View {
 
             HStack(spacing: 10) {
                 Button(locationActionTitle) {
-                    if locationManager.authorizationStatus == .denied || locationManager.authorizationStatus == .restricted {
+                    if isLocationDenied {
                         locationManager.openSettings()
                     } else {
                         locationManager.start()
@@ -1008,8 +1025,10 @@ struct HomeView: View {
                 Button(filteredRecommendations.isEmpty ? "Find Matches" : "Refresh") {
                     if let location = locationManager.location {
                         fetchRestaurants(location: location)
-                    } else {
+                    } else if isLocationDenied {
                         loadFallbackData()
+                    } else {
+                        locationManager.start()
                     }
                 }
                 .buttonStyle(BrandPrimaryButtonStyle())
@@ -1547,15 +1566,15 @@ struct HomeView: View {
             }
 
             if isShowingMockData {
-                Text("Showing sample restaurants. Add Yelp API key in Info settings for live data.")
+                Text(yelpStatusText.contains("enabled") ? "Preview results are showing until live nearby matches load." : "Showing preview restaurants until live data is enabled.")
                     .font(.custom("AvenirNext-Regular", size: 12))
                     .foregroundStyle(BrandPalette.textSecondary)
             }
 
             if isUsingFallbackData {
-                Text("Using sample data because location is unavailable.")
+                Text(isLocationDenied ? "Location is off, so FYTRR is showing preview fuel spots." : "FYTRR is finding your location. Search a city if you want results right away.")
                     .font(.custom("AvenirNext-Regular", size: 12))
-                    .foregroundStyle(BrandPalette.warning)
+                    .foregroundStyle(isLocationDenied ? BrandPalette.warning : BrandPalette.textSecondary)
             }
 
             filterChipsRow
@@ -1777,9 +1796,10 @@ struct HomeView: View {
                 Button {
                     if let location = locationManager.location {
                         fetchRestaurants(location: location)
+                    } else if isLocationDenied {
+                        loadFallbackData()
                     } else {
                         locationManager.start()
-                        loadFallbackData()
                     }
                 } label: {
                     Label("Load Nearby Fuel", systemImage: "location.magnifyingglass")
@@ -2927,9 +2947,10 @@ struct HomeView: View {
     private func refreshFuelMatches() {
         if let location = locationManager.location {
             fetchRestaurants(location: location)
+        } else if isLocationDenied {
+            loadFallbackData()
         } else {
             locationManager.start()
-            loadFallbackData()
         }
     }
 
