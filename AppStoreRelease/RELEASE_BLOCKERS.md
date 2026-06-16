@@ -33,7 +33,7 @@
 - iOS archive succeeded.
 - App Store Connect export succeeded.
 - App Store Connect upload succeeded for version `1.0` build `3`.
-- Build `5` is prepared in GitHub with location fallback and Apple Health fuel balance fixes.
+- App Store Connect upload succeeded for version `1.0` build `5` with location fallback and Apple Health fuel balance fixes.
 - Active Yelp API key validated, injected at archive time, and not committed to GitHub.
 - App Info.plist files now read `YELP_API_KEY` from a build setting so release archives can inject the key safely.
 - AI Coach is hidden from the release navigation.

@@ -6,19 +6,15 @@ Status: Uploaded successfully
 
 Latest uploaded build:
 - Version: `1.0`
-- Build: `3`
+- Build: `5`
 - Uploaded: `2026-06-16`
 - Yelp API key: active key injected at archive time; key was not committed to GitHub.
-
-Latest prepared build in GitHub:
-- Version: `1.0`
-- Build: `5`
-- Status: ready for next TestFlight upload after location fallback and Apple Health fuel balance fixes.
+- Status: uploaded successfully and processing in App Store Connect.
 
 Upload command completed:
 - `xcodebuild -exportArchive`
 - Destination: App Store Connect upload
-- Archive path: `/tmp/FYTRR-2026-build3.xcarchive`
+- Archive path: `/tmp/FYTRR-2026-build5.xcarchive`
 
 Apple response:
 - Uploaded package is processing.
@@ -28,7 +24,7 @@ Apple response:
 
 - Simulator build succeeded.
 - iOS archive succeeded.
-- Archive `1.0` build `3` verified with non-placeholder `YELP_API_KEY` present in the built app plist.
+- Archive `1.0` build `5` verified with non-placeholder `YELP_API_KEY` present in the built app plist.
 - App Store Connect export succeeded.
 - App Store Connect upload succeeded.
 
