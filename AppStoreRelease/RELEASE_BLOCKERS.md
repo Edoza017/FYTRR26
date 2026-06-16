@@ -25,17 +25,23 @@
    - Push notifications only if reminder implementation requires production push entitlement. Local notifications do not.
    - HealthKit disabled for this release unless Health UI returns.
 
-5. Archive with Apple signing.
-   - Use a physical device or `Any iOS Device`.
-   - Upload through Xcode Organizer.
+5. Complete App Store Connect listing.
+   - Wait for the uploaded build to finish processing.
+   - Add screenshots.
+   - Add privacy policy/support URLs.
+   - Complete privacy nutrition labels.
+   - Complete age rating.
+   - Add review notes.
 
 ## Already Completed
 
 - GitHub PR merged into `main`.
 - Local simulator build succeeded.
+- iOS archive succeeded.
+- App Store Connect export succeeded.
+- App Store Connect upload succeeded.
 - AI Coach is hidden from the release navigation.
 - App Store metadata draft prepared.
 - Privacy nutrition label draft prepared.
 - App Review notes prepared.
 - TestFlight test plan prepared.
-
