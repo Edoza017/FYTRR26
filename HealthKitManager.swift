@@ -11,6 +11,7 @@ enum HealthConnectionState {
 final class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
     @Published private(set) var connectionState: HealthConnectionState = .notDetermined
+    private let didRequestHealthAccessKey = "fytrr.didRequestHealthAccess"
 
     init() {
         refreshConnectionState()
@@ -36,29 +37,12 @@ final class HealthKitManager: ObservableObject {
             return
         }
 
-        let statuses = [
-            healthStore.authorizationStatus(for: sleepType),
-            healthStore.authorizationStatus(for: activeEnergyType),
-            healthStore.authorizationStatus(for: basalEnergyType),
-            healthStore.authorizationStatus(for: vo2Type)
-        ]
+        _ = [sleepType, activeEnergyType, basalEnergyType, vo2Type]
 
-        if statuses.contains(.sharingDenied) {
-            connectionState = .denied
-            return
-        }
-
-        if statuses.allSatisfy({ $0 == .notDetermined }) {
-            connectionState = .notDetermined
-            return
-        }
-
-        if statuses.contains(.sharingAuthorized) {
-            connectionState = .authorized
-            return
-        }
-
-        connectionState = .notDetermined
+        // HealthKit does not expose read-authorization status per data type.
+        // Once the user has seen the read prompt, treat the integration as connected
+        // and let individual queries return nil when a data type has no permission/data.
+        connectionState = UserDefaults.standard.bool(forKey: didRequestHealthAccessKey) ? .authorized : .notDetermined
     }
 
     func requestAuthorization() async throws {
@@ -89,6 +73,7 @@ final class HealthKitManager: ObservableObject {
         }
 
         await MainActor.run {
+            UserDefaults.standard.set(true, forKey: self.didRequestHealthAccessKey)
             self.refreshConnectionState()
         }
     }
@@ -100,10 +85,15 @@ final class HealthKitManager: ObservableObject {
             self.refreshConnectionState()
         }
 
-        let sleepHours = try await fetchLastNightSleepHours()
-        let activeEnergyKcal = try await fetchTodayActiveEnergy()
-        let basalEnergyKcal = try await fetchTodayBasalEnergy()
-        let vo2Max = try await fetchLatestVO2Max()
+        async let sleepHoursResult = optionalMetric { try await self.fetchLastNightSleepHours() }
+        async let activeEnergyResult = optionalMetric { try await self.fetchTodayActiveEnergy() }
+        async let basalEnergyResult = optionalMetric { try await self.fetchTodayBasalEnergy() }
+        async let vo2MaxResult = optionalMetric { try await self.fetchLatestVO2Max() }
+
+        let sleepHours = await sleepHoursResult
+        let activeEnergyKcal = await activeEnergyResult
+        let basalEnergyKcal = await basalEnergyResult
+        let vo2Max = await vo2MaxResult
 
         let strain: Double?
         if let activeEnergyKcal {
@@ -114,6 +104,14 @@ final class HealthKitManager: ObservableObject {
         }
 
         return (sleepHours, strain, vo2Max, activeEnergyKcal, basalEnergyKcal)
+    }
+
+    private func optionalMetric(_ fetch: @escaping () async throws -> Double?) async -> Double? {
+        do {
+            return try await fetch()
+        } catch {
+            return nil
+        }
     }
 
     private func fetchLastNightSleepHours() async throws -> Double? {

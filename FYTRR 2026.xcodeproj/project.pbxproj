@@ -436,7 +436,7 @@
 				CODE_SIGN_ENTITLEMENTS = "FYTRR 2026/FYTRR 2026.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"FYTRR 2026/Preview Content\"";
 				DEVELOPMENT_TEAM = 4HFLU4272J;
 				ENABLE_PREVIEWS = YES;
@@ -444,8 +444,7 @@
 				INFOPLIST_FILE = "FYTRR-2026-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = FYTRR;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "FYTRR reads Health data to show sleep and training strain metrics.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FYTRR writes workout nutrition and recovery insights to Health when you choose to sync.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "FYTRR reads Apple Health calories, sleep, and fitness metrics to show your daily fuel balance.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FYTRR uses your location to find healthier food nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -475,7 +474,7 @@
 				CODE_SIGN_ENTITLEMENTS = "FYTRR 2026/FYTRR 2026.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"FYTRR 2026/Preview Content\"";
 				DEVELOPMENT_TEAM = 4HFLU4272J;
 				ENABLE_PREVIEWS = YES;
@@ -483,8 +482,7 @@
 				INFOPLIST_FILE = "FYTRR-2026-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = FYTRR;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "FYTRR reads Health data to show sleep and training strain metrics.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FYTRR writes workout nutrition and recovery insights to Health when you choose to sync.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "FYTRR reads Apple Health calories, sleep, and fitness metrics to show your daily fuel balance.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "FYTRR uses your location to find healthier food nearby.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -511,7 +509,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
@@ -529,7 +527,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
@@ -546,7 +544,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.edwinmendoza.FYTRR-2026UITests";
@@ -562,7 +560,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.edwinmendoza.FYTRR-2026UITests";
