@@ -19,12 +19,12 @@ The app does not provide medical advice. Nutrition and restaurant guidance is in
 - Location When In Use: used to show nearby restaurant and meal options.
 - Notifications: optional meal reminders only after user opt-in.
 - Photos: optional profile photo selection only after user action.
+- Health: optional read-only Apple Health access for calories, sleep, and fitness metrics used in daily fuel balance.
 
 ## External Services
-- Firebase is used for authentication/profile storage.
-- Yelp API is used for live nearby restaurant search when a production API key is configured.
+- Firebase is used for authentication.
+- Yelp API is used for live nearby restaurant search in release archives when the production key is injected at build time.
 - OpenAI live AI is not enabled for this release.
 
 ## Known Release Configuration Requirement
-Before submission, replace `YOUR_YELP_API_KEY` with the production Yelp API key in the app target settings.
-
+Before archive/upload, inject the production Yelp API key through the `YELP_API_KEY` build setting. Do not commit the key to GitHub.

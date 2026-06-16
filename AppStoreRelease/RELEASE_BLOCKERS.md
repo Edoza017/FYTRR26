@@ -5,7 +5,7 @@
 1. Confirm Firebase production project.
    - Verify `GoogleService-Info.plist` is the production FYTRR Firebase app.
    - Confirm Authentication providers are enabled.
-   - Confirm Firestore rules are production-safe.
+   - Firestore is not currently used for profile sync in this release.
 
 2. Create public web URLs.
    - Privacy Policy URL
@@ -16,7 +16,7 @@
    - Bundle ID: `com.edwinmendoza.FYTRR-2026`
    - Sign in with Apple enabled.
    - Push notifications only if reminder implementation requires production push entitlement. Local notifications do not.
-   - HealthKit disabled for this release unless Health UI returns.
+   - HealthKit enabled for optional Apple Health fuel balance.
 
 4. Complete App Store Connect listing.
    - Wait for the uploaded build to finish processing.
@@ -32,8 +32,9 @@
 - Local simulator build succeeded.
 - iOS archive succeeded.
 - App Store Connect export succeeded.
-- App Store Connect upload succeeded for version `1.0` build `2`.
-- Active Yelp API key validated, injected via temporary local build config, and not committed to GitHub.
+- App Store Connect upload succeeded for version `1.0` build `3`.
+- Build `5` is prepared in GitHub with location fallback and Apple Health fuel balance fixes.
+- Active Yelp API key validated, injected at archive time, and not committed to GitHub.
 - App Info.plist files now read `YELP_API_KEY` from a build setting so release archives can inject the key safely.
 - AI Coach is hidden from the release navigation.
 - App Store metadata draft prepared.
