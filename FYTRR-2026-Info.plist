@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FYTRR uses your location to find healthier food nearby.</string>
+	<key>YELP_API_KEY</key>
+	<string>YOUR_YELP_API_KEY</string>
+</dict>
+</plist>

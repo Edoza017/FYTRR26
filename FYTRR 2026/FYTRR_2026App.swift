@@ -1,17 +1,30 @@
-//
-//  FYTRR_2026App.swift
-//  FYTRR 2026
-//
-//  Created by EDWIN MENDOZA on 4/7/26.
-//
-
 import SwiftUI
+import FirebaseCore
 
 @main
-struct FYTRR_2026App: App {
+struct FYTRRApp: App {
+
+    @StateObject var appState = AppState()
+
+    init() {
+        configureFirebaseIfAvailable()
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environmentObject(appState)
+                .tint(BrandPalette.accent)
+                .environment(\.font, .custom("AvenirNextCondensed-Regular", size: 16))
+        }
+    }
+
+    private func configureFirebaseIfAvailable() {
+        guard FirebaseApp.app() == nil else { return }
+
+        if let filePath = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist"),
+           let options = FirebaseOptions(contentsOfFile: filePath) {
+            FirebaseApp.configure(options: options)
         }
     }
 }
