@@ -38,8 +38,9 @@ struct RecommendationEngine {
         let distanceScore = distanceScore(for: restaurant.distance)
         let priceScore = priceScore(for: restaurant.price)
         let proteinBonus = proteinPreferenceBonus(for: restaurant, prioritizeHighProtein: profile.prioritizeHighProtein)
+        let menuBonus = restaurant.bestMenuURL == nil ? 0 : 3
 
-        return max(0, min(100, categoryScore + ratingScore + distanceScore + priceScore + proteinBonus))
+        return max(0, min(100, categoryScore + ratingScore + distanceScore + priceScore + proteinBonus + menuBonus))
     }
 
     private func reason(for restaurant: Restaurant, profile: UserProfile) -> String {
@@ -84,20 +85,20 @@ struct RecommendationEngine {
 
         switch goal {
         case "Lose Fat":
-            if matchesAny(text, keywords: ["salad", "healthy", "juice", "vegan", "vegetarian", "poke", "wrap"]) {
+            if matchesAny(text, keywords: ["salad", "healthy", "juice", "vegan", "vegetarian", "poke", "wrap", "mediterranean", "japanese"]) {
                 return 30
             }
         case "Gain Muscle":
-            if matchesAny(text, keywords: ["grill", "protein", "chicken", "mediterranean", "poke", "steak", "thai"]) {
+            if matchesAny(text, keywords: ["grill", "protein", "chicken", "mediterranean", "poke", "steak", "thai", "seafood", "korean", "bbq"]) {
                 return 30
             }
         default:
-            if matchesAny(text, keywords: ["healthy", "mediterranean", "poke", "sandwich", "mexican", "american"]) {
+            if matchesAny(text, keywords: ["healthy", "mediterranean", "poke", "sandwich", "mexican", "american", "salad", "grill"]) {
                 return 26
             }
         }
 
-        if matchesAny(text, keywords: ["healthy", "food"]) {
+        if matchesAny(text, keywords: ["healthy", "food", "cafe", "coffee"]) {
             return 20
         }
 
@@ -134,7 +135,7 @@ struct RecommendationEngine {
 
     private func isLikelyHighProtein(_ restaurant: Restaurant) -> Bool {
         let text = restaurant.searchableCategoryText
-        return matchesAny(text, keywords: ["protein", "grill", "chicken", "steak", "bbq", "poke"])
+        return matchesAny(text, keywords: ["protein", "grill", "chicken", "steak", "bbq", "poke", "mediterranean", "seafood", "korean"])
     }
 
     private func priceTier(for price: String?) -> Int? {

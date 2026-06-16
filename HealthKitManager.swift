@@ -29,6 +29,7 @@ final class HealthKitManager: ObservableObject {
         guard
             let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
             let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
+            let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned),
             let vo2Type = HKObjectType.quantityType(forIdentifier: .vo2Max)
         else {
             connectionState = .notAvailable
@@ -38,6 +39,7 @@ final class HealthKitManager: ObservableObject {
         let statuses = [
             healthStore.authorizationStatus(for: sleepType),
             healthStore.authorizationStatus(for: activeEnergyType),
+            healthStore.authorizationStatus(for: basalEnergyType),
             healthStore.authorizationStatus(for: vo2Type)
         ]
 
@@ -65,12 +67,13 @@ final class HealthKitManager: ObservableObject {
         guard
             let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
             let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
+            let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned),
             let vo2Type = HKObjectType.quantityType(forIdentifier: .vo2Max)
         else {
             throw HealthKitManagerError.typeUnavailable
         }
 
-        let readTypes: Set<HKObjectType> = [sleepType, activeEnergyType, vo2Type]
+        let readTypes: Set<HKObjectType> = [sleepType, activeEnergyType, basalEnergyType, vo2Type]
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             healthStore.requestAuthorization(toShare: [], read: readTypes) { success, error in
                 if let error {
@@ -90,7 +93,7 @@ final class HealthKitManager: ObservableObject {
         }
     }
 
-    func fetchTodayMetrics() async throws -> (sleepHours: Double?, trainingStrain: Double?, vo2Max: Double?) {
+    func fetchTodayMetrics() async throws -> (sleepHours: Double?, trainingStrain: Double?, vo2Max: Double?, activeEnergyKcal: Double?, basalEnergyKcal: Double?) {
         guard isAvailable else { throw HealthKitManagerError.notAvailable }
 
         await MainActor.run {
@@ -99,6 +102,7 @@ final class HealthKitManager: ObservableObject {
 
         let sleepHours = try await fetchLastNightSleepHours()
         let activeEnergyKcal = try await fetchTodayActiveEnergy()
+        let basalEnergyKcal = try await fetchTodayBasalEnergy()
         let vo2Max = try await fetchLatestVO2Max()
 
         let strain: Double?
@@ -109,7 +113,7 @@ final class HealthKitManager: ObservableObject {
             strain = nil
         }
 
-        return (sleepHours, strain, vo2Max)
+        return (sleepHours, strain, vo2Max, activeEnergyKcal, basalEnergyKcal)
     }
 
     private func fetchLastNightSleepHours() async throws -> Double? {
@@ -169,6 +173,35 @@ final class HealthKitManager: ObservableObject {
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKStatisticsQuery(
                 quantityType: activeEnergyType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                let value = statistics?.sumQuantity()?.doubleValue(for: HKUnit.kilocalorie())
+                continuation.resume(returning: value)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
+    private func fetchTodayBasalEnergy() async throws -> Double? {
+        guard let basalEnergyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else {
+            throw HealthKitManagerError.typeUnavailable
+        }
+
+        let now = Date()
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: now)
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: basalEnergyType,
                 quantitySamplePredicate: predicate,
                 options: .cumulativeSum
             ) { _, statistics, error in

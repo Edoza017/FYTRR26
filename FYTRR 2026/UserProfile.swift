@@ -22,6 +22,7 @@ struct UserProfile: Codable, Equatable {
     var maxPriceTier: Int
     var prioritizeHighProtein: Bool
     var proteinTargetMultiplier: Double
+    var backgroundTheme: String
 
     var heightDescription: String {
         "\(heightFeet)'\(heightInches)\""
@@ -49,7 +50,8 @@ struct UserProfile: Codable, Equatable {
         mealsPerDay: Int = 3,
         maxPriceTier: Int = 4,
         prioritizeHighProtein: Bool = true,
-        proteinTargetMultiplier: Double = 0.8
+        proteinTargetMultiplier: Double = 0.8,
+        backgroundTheme: String = BrandTheme.neonGreen.rawValue
     ) {
         self.name = name
         self.age = age
@@ -63,7 +65,8 @@ struct UserProfile: Codable, Equatable {
         self.mealsPerDay = min(6, max(1, mealsPerDay))
         self.maxPriceTier = min(4, max(1, maxPriceTier))
         self.prioritizeHighProtein = prioritizeHighProtein
-        self.proteinTargetMultiplier = min(1.0, max(0.7, proteinTargetMultiplier))
+        self.proteinTargetMultiplier = min(1.2, max(0.7, proteinTargetMultiplier))
+        self.backgroundTheme = BrandTheme(rawValue: backgroundTheme)?.rawValue ?? BrandTheme.neonGreen.rawValue
     }
 
     init?(firestoreData: [String: Any]) {
@@ -115,6 +118,7 @@ struct UserProfile: Codable, Equatable {
         }
 
         let prioritizeHighProtein = firestoreData["prioritizeHighProtein"] as? Bool ?? true
+        let backgroundTheme = firestoreData["backgroundTheme"] as? String ?? BrandTheme.neonGreen.rawValue
 
         let proteinTargetMultiplier: Double
         switch firestoreData["proteinTargetMultiplier"] {
@@ -139,7 +143,8 @@ struct UserProfile: Codable, Equatable {
             mealsPerDay: mealsPerDay,
             maxPriceTier: maxPriceTier,
             prioritizeHighProtein: prioritizeHighProtein,
-            proteinTargetMultiplier: proteinTargetMultiplier
+            proteinTargetMultiplier: proteinTargetMultiplier,
+            backgroundTheme: backgroundTheme
         )
     }
 
@@ -157,7 +162,8 @@ struct UserProfile: Codable, Equatable {
             "mealsPerDay": mealsPerDay,
             "maxPriceTier": maxPriceTier,
             "prioritizeHighProtein": prioritizeHighProtein,
-            "proteinTargetMultiplier": proteinTargetMultiplier
+            "proteinTargetMultiplier": proteinTargetMultiplier,
+            "backgroundTheme": backgroundTheme
         ]
     }
 
@@ -175,6 +181,7 @@ struct UserProfile: Codable, Equatable {
         case maxPriceTier
         case prioritizeHighProtein
         case proteinTargetMultiplier
+        case backgroundTheme
     }
 
     init(from decoder: Decoder) throws {
@@ -192,6 +199,7 @@ struct UserProfile: Codable, Equatable {
         let maxPriceTier = try container.decodeIfPresent(Int.self, forKey: .maxPriceTier) ?? 4
         let prioritizeHighProtein = try container.decodeIfPresent(Bool.self, forKey: .prioritizeHighProtein) ?? true
         let proteinTargetMultiplier = try container.decodeIfPresent(Double.self, forKey: .proteinTargetMultiplier) ?? 0.8
+        let backgroundTheme = try container.decodeIfPresent(String.self, forKey: .backgroundTheme) ?? BrandTheme.neonGreen.rawValue
 
         self.init(
             name: name,
@@ -206,7 +214,8 @@ struct UserProfile: Codable, Equatable {
             mealsPerDay: mealsPerDay,
             maxPriceTier: maxPriceTier,
             prioritizeHighProtein: prioritizeHighProtein,
-            proteinTargetMultiplier: proteinTargetMultiplier
+            proteinTargetMultiplier: proteinTargetMultiplier,
+            backgroundTheme: backgroundTheme
         )
     }
 
@@ -225,5 +234,6 @@ struct UserProfile: Codable, Equatable {
         try container.encode(maxPriceTier, forKey: .maxPriceTier)
         try container.encode(prioritizeHighProtein, forKey: .prioritizeHighProtein)
         try container.encode(proteinTargetMultiplier, forKey: .proteinTargetMultiplier)
+        try container.encode(backgroundTheme, forKey: .backgroundTheme)
     }
 }

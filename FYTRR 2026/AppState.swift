@@ -78,6 +78,7 @@ final class AppState: ObservableObject {
                 dailyCalories: 2400,
                 mealsPerDay: 3
             )
+            applyTheme(from: currentUserProfile)
         }
     }
 
@@ -85,6 +86,7 @@ final class AppState: ObservableObject {
         if let profile = ProfileStore.loadProfile(uid: uid) {
             hasCompletedProfile = true
             currentUserProfile = profile
+            applyTheme(from: profile)
         } else {
             hasCompletedProfile = false
             currentUserProfile = nil
@@ -104,6 +106,15 @@ final class AppState: ObservableObject {
         self.isLoggedIn = false
         self.hasCompletedProfile = false
         self.currentUserProfile = nil
+    }
+
+    private func applyTheme(from profile: UserProfile?) {
+        guard
+            let rawValue = profile?.backgroundTheme,
+            let theme = BrandTheme(rawValue: rawValue)
+        else { return }
+
+        BrandThemeStore.current = theme
     }
 
     deinit {

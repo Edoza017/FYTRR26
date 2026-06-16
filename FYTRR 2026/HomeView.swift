@@ -84,9 +84,10 @@ private enum DeliveryProvider: String, CaseIterable, Identifiable {
 
 private enum FuelFilter: String, CaseIterable, Identifiable {
     case highProtein = "High Protein"
+    case menuReady = "Menu Ready"
     case underDoubleDollar = "Under $$"
     case topRated = "Top Rated 4.5+"
-    case nearby = "Nearby <2 mi"
+    case local = "Local <3 mi"
 
     var id: String { rawValue }
 }
@@ -128,6 +129,7 @@ struct HomeView: View {
     @State private var profileMaxPriceTier: Int = 4
     @State private var profilePrioritizeHighProtein = true
     @State private var profileProteinTargetMultiplier: Double = 0.8
+    @State private var selectedProfileTheme: BrandTheme = BrandThemeStore.current
     @State private var profileUpdateMessage: String?
     @State private var isSavingProfile = false
     @State private var lastUpdatedAt: Date?
@@ -141,6 +143,8 @@ struct HomeView: View {
     @State private var sleepHours: Double?
     @State private var trainingStrain: Double?
     @State private var vo2Max: Double?
+    @State private var activeEnergyKcal: Double?
+    @State private var basalEnergyKcal: Double?
     @State private var isReadinessLoading = false
     @State private var performanceMessage: String?
     @State private var selectedProfilePhotoItem: PhotosPickerItem?
@@ -148,6 +152,7 @@ struct HomeView: View {
     @State private var mealOrderHistory: [MealOrderEntry] = []
     @State private var orderCelebrationMessage: String?
     @AppStorage("fytrr.didRunPostProfilePermissionPrompt") private var didRunPostProfilePermissionPrompt = false
+    @AppStorage("fytrr.healthIntegrationEnabled") private var isHealthIntegrationEnabled = true
     @State private var isShowingMapExperience = false
     @State private var mapSearchCenter: CLLocationCoordinate2D?
     @State private var nearbyOpenTriggerMessage: String?
@@ -155,8 +160,15 @@ struct HomeView: View {
     @State private var reminderStatusMessage: String?
     @AppStorage("fytrr.lastFuelCheckInDay") private var lastFuelCheckInDay = ""
     @AppStorage("fytrr.currentFuelStreak") private var currentFuelStreak = 0
+    @AppStorage("fytrr.breakfastReminderEnabled") private var isBreakfastReminderEnabled = false
     @AppStorage("fytrr.lunchReminderEnabled") private var isLunchReminderEnabled = false
     @AppStorage("fytrr.dinnerReminderEnabled") private var isDinnerReminderEnabled = false
+    @AppStorage("fytrr.breakfastReminderHour") private var breakfastReminderHour = 8
+    @AppStorage("fytrr.breakfastReminderMinute") private var breakfastReminderMinute = 0
+    @AppStorage("fytrr.lunchReminderHour") private var lunchReminderHour = 11
+    @AppStorage("fytrr.lunchReminderMinute") private var lunchReminderMinute = 30
+    @AppStorage("fytrr.dinnerReminderHour") private var dinnerReminderHour = 17
+    @AppStorage("fytrr.dinnerReminderMinute") private var dinnerReminderMinute = 30
     @State private var mapCameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 34.0522, longitude: -118.2437),
@@ -213,29 +225,24 @@ struct HomeView: View {
             return activeFuelFilters.allSatisfy { filter in
                 switch filter {
                 case .highProtein:
-                    let text = recommendation.restaurant.searchableCategoryText
-                    return text.contains("protein") || text.contains("grill") || text.contains("chicken") || text.contains("steak") || text.contains("poke")
+                    return isHighProteinRestaurant(recommendation.restaurant)
+                case .menuReady:
+                    return recommendation.restaurant.bestMenuURL != nil
                 case .underDoubleDollar:
                     guard let price = recommendation.restaurant.price else { return true }
                     return price.count <= 2
                 case .topRated:
                     return recommendation.restaurant.rating >= 4.5
-                case .nearby:
+                case .local:
                     guard let distance = recommendation.restaurant.distance else { return false }
-                    return distance <= 3218.68
+                    return distance <= 4828.03
                 }
             }
         }
     }
 
-    private var closestTenRecommendations: [RestaurantRecommendation] {
-        Array(
-            filteredRecommendations
-                .sorted { lhs, rhs in
-                    (lhs.restaurant.distance ?? .greatestFiniteMagnitude) < (rhs.restaurant.distance ?? .greatestFiniteMagnitude)
-                }
-                .prefix(10)
-        )
+    private var topFuelRecommendations: [RestaurantRecommendation] {
+        Array(filteredRecommendations.prefix(10))
     }
 
     private var dailyFuelPlanRecommendations: [RestaurantRecommendation] {
@@ -347,7 +354,7 @@ struct HomeView: View {
 
     private var draftProteinTarget: Int? {
         guard let profile else { return nil }
-        let factor = min(1.0, max(0.7, profileProteinTargetMultiplier))
+        let factor = min(1.2, max(0.7, profileProteinTargetMultiplier))
         return Int((profile.weightLbs * factor).rounded())
     }
 
@@ -400,6 +407,47 @@ struct HomeView: View {
         }
     }
 
+    private var totalEnergyBurnedKcal: Int? {
+        guard activeEnergyKcal != nil || basalEnergyKcal != nil else { return nil }
+        return Int(((activeEnergyKcal ?? 0) + (basalEnergyKcal ?? 0)).rounded())
+    }
+
+    private var fuelBalanceGap: Int? {
+        guard let totalEnergyBurnedKcal, let profile else { return nil }
+        return totalEnergyBurnedKcal - profile.dailyCalories
+    }
+
+    private var fuelBalanceTitle: String {
+        guard isHealthIntegrationEnabled else { return "Apple Watch Off" }
+        guard let fuelBalanceGap else { return "Connect Apple Health" }
+
+        switch fuelBalanceGap {
+        case ..<(-250): return "Fuel Ahead"
+        case -250...250: return "On Target"
+        default: return "Refuel Needed"
+        }
+    }
+
+    private var fuelBalanceMessage: String {
+        guard isHealthIntegrationEnabled else {
+            return "Turn on Apple Watch + Health in Profile to compare calories burned against your daily need."
+        }
+
+        guard let fuelBalanceGap, let profile else {
+            return "Connect Apple Watch or Health data to compare total calories burned against your daily need."
+        }
+
+        let gap = abs(fuelBalanceGap)
+        switch fuelBalanceGap {
+        case ..<(-250):
+            return "You are about \(gap) calories under today's target of \(profile.dailyCalories). Stay steady and use lighter meals."
+        case -250...250:
+            return "You are within \(gap) calories of today's \(profile.dailyCalories)-calorie target."
+        default:
+            return "You have burned about \(gap) calories above today's need. Add a recovery meal with protein and carbs."
+        }
+    }
+
     private var hasProfileChanges: Bool {
         guard let profile else { return false }
         return profile.goal != profileGoal
@@ -408,6 +456,7 @@ struct HomeView: View {
             || profile.maxPriceTier != profileMaxPriceTier
             || profile.prioritizeHighProtein != profilePrioritizeHighProtein
             || abs(profile.proteinTargetMultiplier - profileProteinTargetMultiplier) > 0.001
+            || profile.backgroundTheme != selectedProfileTheme.rawValue
     }
 
     private var canSaveProfileChanges: Bool {
@@ -599,6 +648,9 @@ struct HomeView: View {
                 mealTargetCalories: profile?.mealCalorieTarget,
                 onOpenMenu: { restaurant in
                     openMenu(for: restaurant)
+                },
+                onOpenDirections: { restaurant in
+                    openDirections(for: restaurant)
                 },
                 onOrderDoorDash: { restaurantName in
                     openDoorDash(for: restaurantName)
@@ -986,50 +1038,8 @@ struct HomeView: View {
     private var releaseHomeContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             dailyFuelPlanCard
+            performanceDashboard
             fuelStreakReminderCard
-
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    sectionHeader("Best Nearby")
-                    Spacer()
-                    Button("View Map") {
-                        isShowingMapExperience = true
-                    }
-                    .font(.custom("AvenirNext-DemiBold", size: 12))
-                    .foregroundStyle(BrandPalette.accent)
-                }
-
-                Text(homeStatusText)
-                    .font(.custom("AvenirNext-Regular", size: 13))
-                    .foregroundStyle(BrandPalette.textSecondary)
-
-                if isLoading {
-                    ProgressView("Finding matches...")
-                        .font(.custom("AvenirNext-Regular", size: 13))
-                        .tint(BrandPalette.success)
-                }
-
-                if closestTenRecommendations.isEmpty && !isLoading {
-                    homeEmptyFuelState
-                }
-
-                ForEach(closestTenRecommendations.prefix(3)) { recommendation in
-                    compactRecommendationRow(recommendation)
-                }
-
-                HStack(spacing: 10) {
-                    Button("Open Map") {
-                        isShowingMapExperience = true
-                    }
-                    .buttonStyle(BrandPrimaryButtonStyle())
-
-                    Button("Refresh") {
-                        refreshFuelMatches()
-                    }
-                    .buttonStyle(BrandSecondaryButtonStyle())
-                }
-            }
-            .brandCard()
         }
     }
 
@@ -1106,12 +1116,7 @@ struct HomeView: View {
     private var fuelStreakReminderCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                Image(systemName: hasCheckedInToday ? "flame.fill" : "flame")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(BrandPalette.accent)
-                    .frame(width: 38, height: 38)
-                    .background(BrandPalette.elevated)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                fuelHeatGauge
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(streakTitleText)
@@ -1129,22 +1134,28 @@ struct HomeView: View {
                 .overlay(BrandPalette.stroke)
 
             VStack(spacing: 8) {
-                reminderToggleRow(
-                    title: "Lunch reminder",
-                    subtitle: "11:30 AM daily",
-                    isOn: $isLunchReminderEnabled,
-                    identifier: "fytrr.lunchFuelReminder",
-                    hour: 11,
-                    minute: 30
+                reminderTimeRow(
+                    title: "Breakfast reminder",
+                    isOn: $isBreakfastReminderEnabled,
+                    identifier: "fytrr.breakfastFuelReminder",
+                    hour: $breakfastReminderHour,
+                    minute: $breakfastReminderMinute
                 )
 
-                reminderToggleRow(
+                reminderTimeRow(
+                    title: "Lunch reminder",
+                    isOn: $isLunchReminderEnabled,
+                    identifier: "fytrr.lunchFuelReminder",
+                    hour: $lunchReminderHour,
+                    minute: $lunchReminderMinute
+                )
+
+                reminderTimeRow(
                     title: "Dinner reminder",
-                    subtitle: "5:30 PM daily",
                     isOn: $isDinnerReminderEnabled,
                     identifier: "fytrr.dinnerFuelReminder",
-                    hour: 17,
-                    minute: 30
+                    hour: $dinnerReminderHour,
+                    minute: $dinnerReminderMinute
                 )
             }
 
@@ -1156,6 +1167,29 @@ struct HomeView: View {
             }
         }
         .brandCard()
+    }
+
+    private var fuelHeatGauge: some View {
+        let filledBars = max(1, min(5, currentFuelStreak))
+
+        return VStack(spacing: 4) {
+            Image(systemName: hasCheckedInToday ? "flame.fill" : "flame")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(hasCheckedInToday ? BrandPalette.backgroundTop : BrandPalette.accent)
+                .frame(width: 36, height: 32)
+                .background(hasCheckedInToday ? BrandPalette.accent : BrandPalette.elevated)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack(spacing: 2) {
+                ForEach(0..<5, id: \.self) { index in
+                    Capsule()
+                        .fill(index < filledBars ? BrandPalette.accent : BrandPalette.stroke)
+                        .frame(width: 5, height: CGFloat(8 + index * 3))
+                }
+            }
+        }
+        .frame(width: 46)
+        .accessibilityLabel("Fuel streak heat level \(filledBars) of 5")
     }
 
     private var homeEmptyFuelState: some View {
@@ -1206,7 +1240,7 @@ struct HomeView: View {
                     .foregroundStyle(BrandPalette.textPrimary)
                     .lineLimit(1)
 
-                Text(mealSuggestions(for: recommendation).first ?? targetMealOptionText(for: recommendation))
+                Text(menuBasedMealRecommendationText(for: recommendation))
                     .font(.custom("AvenirNext-Regular", size: 12))
                     .foregroundStyle(BrandPalette.textSecondary)
                     .lineLimit(2)
@@ -1247,7 +1281,117 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
-    private func reminderToggleRow(
+    private func reminderTimeRow(
+        title: String,
+        isOn: Binding<Bool>,
+        identifier: String,
+        hour: Binding<Int>,
+        minute: Binding<Int>
+    ) -> some View {
+        let enabled = isOn.wrappedValue
+
+        return VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: reminderIcon(for: title))
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(enabled ? BrandPalette.backgroundTop : BrandPalette.accent)
+                    .frame(width: 36, height: 36)
+                    .background(enabled ? BrandPalette.accent : BrandPalette.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.custom("AvenirNext-DemiBold", size: 14))
+                        .foregroundStyle(BrandPalette.textPrimary)
+                    Text(enabled ? "\(formattedReminderTime(hour: hour.wrappedValue, minute: minute.wrappedValue)) daily" : "Off")
+                        .font(.custom("AvenirNext-Regular", size: 12))
+                        .foregroundStyle(enabled ? BrandPalette.accent : BrandPalette.textSecondary)
+                }
+
+                Spacer()
+
+                Toggle("", isOn: isOn)
+                    .labelsHidden()
+                    .tint(BrandPalette.accent)
+                    .onChange(of: isOn.wrappedValue) { _, enabled in
+                        updateFuelReminder(identifier: identifier, enabled: enabled, hour: hour.wrappedValue, minute: minute.wrappedValue)
+                    }
+            }
+
+            if enabled {
+                HStack(spacing: 8) {
+                    Picker("\(title) hour", selection: hour) {
+                        ForEach(0..<24, id: \.self) { value in
+                            Text(formattedHour(value)).tag(value)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(BrandPalette.accent)
+                    .frame(maxWidth: .infinity)
+
+                    Picker("\(title) minute", selection: minute) {
+                        ForEach([0, 15, 30, 45], id: \.self) { value in
+                            Text(String(format: "%02d", value)).tag(value)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(BrandPalette.accent)
+                    .frame(maxWidth: .infinity)
+                }
+                .font(.custom("AvenirNext-DemiBold", size: 13))
+                .padding(8)
+                .background(BrandPalette.backgroundTop.opacity(0.55))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(BrandPalette.accent.opacity(0.28), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .onChange(of: hour.wrappedValue) { _, newHour in
+                    if isOn.wrappedValue {
+                        updateFuelReminder(identifier: identifier, enabled: true, hour: newHour, minute: minute.wrappedValue)
+                    }
+                }
+                .onChange(of: minute.wrappedValue) { _, newMinute in
+                    if isOn.wrappedValue {
+                        updateFuelReminder(identifier: identifier, enabled: true, hour: hour.wrappedValue, minute: newMinute)
+                    }
+                }
+            }
+        }
+        .padding(10)
+        .background(enabled ? BrandPalette.accent.opacity(0.11) : BrandPalette.elevated)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(enabled ? BrandPalette.accent.opacity(0.42) : BrandPalette.stroke, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func reminderIcon(for title: String) -> String {
+        let lowercased = title.lowercased()
+        if lowercased.contains("breakfast") { return "sunrise.fill" }
+        if lowercased.contains("lunch") { return "sun.max.fill" }
+        return "moon.stars.fill"
+    }
+
+    private func formattedHour(_ hour: Int) -> String {
+        let normalized = ((hour % 24) + 24) % 24
+        switch normalized {
+        case 0: return "12 AM"
+        case 1...11: return "\(normalized) AM"
+        case 12: return "12 PM"
+        default: return "\(normalized - 12) PM"
+        }
+    }
+
+    private func formattedReminderTime(hour: Int, minute: Int) -> String {
+        let normalizedHour = ((hour % 24) + 24) % 24
+        let suffix = normalizedHour < 12 ? "AM" : "PM"
+        let displayHour = normalizedHour == 0 ? 12 : (normalizedHour > 12 ? normalizedHour - 12 : normalizedHour)
+        return String(format: "%d:%02d %@", displayHour, minute, suffix)
+    }
+
+    private func legacyReminderToggleRow(
         title: String,
         subtitle: String,
         isOn: Binding<Bool>,
@@ -1289,9 +1433,9 @@ struct HomeView: View {
 
     private var homeStatusText: String {
         if let profile {
-            return "Target: \(profile.mealCalorieTarget) calories per meal. Showing your closest high-fit options."
+            return "Target: \(profile.mealCalorieTarget) calories per meal. Ranked by FYTRR health fit, Yelp rating, distance, and menu availability."
         }
-        return "Showing nearby fuel options. Complete your profile for personalized targets."
+        return "Ranked by FYTRR health fit, Yelp rating, distance, and menu availability."
     }
 
     private func compactRecommendationRow(_ recommendation: RestaurantRecommendation) -> some View {
@@ -1336,7 +1480,7 @@ struct HomeView: View {
             }
             .font(.custom("AvenirNext-Medium", size: 12))
 
-            Text(mealSuggestions(for: recommendation).first ?? targetMealOptionText(for: recommendation))
+            Text(menuBasedMealRecommendationText(for: recommendation))
                 .font(.custom("AvenirNext-Regular", size: 13))
                 .foregroundStyle(BrandPalette.textSecondary)
                 .lineLimit(2)
@@ -1345,22 +1489,23 @@ struct HomeView: View {
                 Button {
                     openMenu(for: recommendation.restaurant)
                 } label: {
-                    Label("Menu", systemImage: "menucard")
-                        .font(.custom("AvenirNext-DemiBold", size: 12))
-                        .frame(maxWidth: .infinity)
+                    fuelActionLabel(title: "Menu", icon: "menucard", isPrimary: false)
                 }
-                .buttonStyle(.bordered)
-                .tint(BrandPalette.accent)
+                .buttonStyle(.plain)
 
                 Button {
                     openSelectedProvider(for: recommendation.restaurant.name)
                 } label: {
-                    Label("Order", systemImage: "bag")
-                        .font(.custom("AvenirNext-DemiBold", size: 12))
-                        .frame(maxWidth: .infinity)
+                    fuelActionLabel(title: "Order", icon: "bag", isPrimary: true)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(BrandPalette.success)
+                .buttonStyle(.plain)
+
+                Button {
+                    openDirections(for: recommendation.restaurant)
+                } label: {
+                    fuelActionLabel(title: "Go", icon: "arrow.triangle.turn.up.right.diamond", isPrimary: false)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(12)
@@ -1374,8 +1519,19 @@ struct HomeView: View {
 
     private var recommendationsBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("Nearby Fuel")
-            Text("Browse the best matches in your current radius.")
+            HStack {
+                sectionHeader("Best Nearby Fuel")
+                Spacer()
+                Button {
+                    isShowingMapExperience = true
+                } label: {
+                    Label("Map", systemImage: "map")
+                        .font(.custom("AvenirNext-DemiBold", size: 12))
+                }
+                .foregroundStyle(BrandPalette.accent)
+            }
+
+            Text(homeStatusText)
                 .font(.custom("AvenirNext-Regular", size: 12))
                 .foregroundStyle(BrandPalette.textSecondary)
 
@@ -1404,14 +1560,18 @@ struct HomeView: View {
 
             filterChipsRow
 
-            if closestTenRecommendations.isEmpty {
+            if topFuelRecommendations.isEmpty {
                 Text(fuelEmptyStateMessage)
                     .font(.custom("AvenirNext-Regular", size: 14))
                     .foregroundStyle(BrandPalette.textSecondary)
             }
 
-            ForEach(closestTenRecommendations) { recommendation in
-                recommendationCard(for: recommendation, featured: recommendation.id == closestTenRecommendations.first?.id)
+            ForEach(Array(topFuelRecommendations.enumerated()), id: \.element.id) { index, recommendation in
+                recommendationCard(
+                    for: recommendation,
+                    rank: index + 1,
+                    featured: recommendation.id == topFuelRecommendations.first?.id
+                )
             }
         }
         .brandCard()
@@ -1613,7 +1773,7 @@ struct HomeView: View {
             }
             .disabled(isCoachLoading)
 
-            if closestTenRecommendations.isEmpty {
+            if topFuelRecommendations.isEmpty {
                 Button {
                     if let location = locationManager.location {
                         fetchRestaurants(location: location)
@@ -1754,7 +1914,7 @@ struct HomeView: View {
                     prompt: prompt,
                     conversation: conversationContext,
                     profile: profile,
-                    nearbyRecommendations: closestTenRecommendations,
+                    nearbyRecommendations: topFuelRecommendations,
                     mealTargetCalories: profile?.mealCalorieTarget
                 )
 
@@ -1776,7 +1936,7 @@ struct HomeView: View {
 
     private func coachResponse(for prompt: String) -> String {
         let promptLower = prompt.lowercased()
-        let closest = closestTenRecommendations
+        let closest = topFuelRecommendations
         let top = Array(closest.prefix(3))
         let target = profile?.mealCalorieTarget
         let targetText = target.map { "\($0) cal/meal target" } ?? "your current meal target"
@@ -1827,7 +1987,24 @@ struct HomeView: View {
     }
 
     private func mealSuggestions(for recommendation: RestaurantRecommendation) -> [String] {
-        let text = recommendation.restaurant.searchableCategoryText
+        let restaurant = recommendation.restaurant
+        let text = "\(restaurant.name.lowercased()) \(restaurant.searchableCategoryText)"
+
+        if text.contains("chipotle") {
+            return ["Chicken bowl + fajita veggies", "Steak salad bowl + black beans"]
+        }
+        if text.contains("cava") {
+            return ["Grilled chicken greens + grains bowl", "Harissa honey chicken salad bowl"]
+        }
+        if text.contains("sweetgreen") {
+            return ["Harvest bowl + extra chicken", "Chicken pesto parm salad"]
+        }
+        if text.contains("panera") {
+            return ["Greek salad + chicken", "Turkey chili + apple"]
+        }
+        if text.contains("jersey mike") || text.contains("sandwich") {
+            return ["Turkey sub in a tub", "Chicken cheesesteak bowl-style"]
+        }
 
         if text.contains("poke") {
             return ["Ahi tuna poke bowl + greens", "Salmon poke bowl + edamame"]
@@ -1849,6 +2026,13 @@ struct HomeView: View {
         }
 
         return ["Chicken bowl + vegetables", "Salmon plate + brown rice"]
+    }
+
+    private func menuBasedMealRecommendationText(for recommendation: RestaurantRecommendation) -> String {
+        let primaryMeal = mealSuggestions(for: recommendation).first ?? "Protein bowl + vegetables"
+        let targetText = profile.map { "around \($0.mealCalorieTarget) cal" } ?? "balanced portions"
+        let sourceText = recommendation.restaurant.bestMenuURL == nil ? "Yelp category pick" : "Menu-informed pick"
+        return "\(sourceText): \(primaryMeal), \(targetText)."
     }
 
     private func targetMealOptionText(for recommendation: RestaurantRecommendation) -> String {
@@ -1907,6 +2091,79 @@ struct HomeView: View {
                         }
 
                         Spacer()
+                    }
+                }
+
+                profileSectionCard(title: "App Theme") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Choose your app background and accent color.")
+                            .font(.custom("AvenirNext-Regular", size: 13))
+                            .foregroundStyle(BrandPalette.textSecondary)
+
+                        HStack(spacing: 8) {
+                            ForEach(BrandTheme.allCases) { theme in
+                                profileThemeButton(theme)
+                            }
+                        }
+                    }
+                }
+
+                profileSectionCard(title: "Apple Watch + Health") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "applewatch")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(isHealthIntegrationEnabled ? BrandPalette.backgroundTop : BrandPalette.accent)
+                                .frame(width: 42, height: 42)
+                                .background(isHealthIntegrationEnabled ? BrandPalette.accent : BrandPalette.surface)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(appleHealthStatusText)
+                                    .font(.custom("AvenirNext-DemiBold", size: 14))
+                                    .foregroundStyle(BrandPalette.textPrimary)
+
+                                Text(isHealthIntegrationEnabled ? "Use Apple Watch calories for daily fuel balance." : "Apple Watch fuel balance is turned off.")
+                                    .font(.custom("AvenirNext-Regular", size: 12))
+                                    .foregroundStyle(BrandPalette.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            Spacer()
+
+                            Toggle("", isOn: $isHealthIntegrationEnabled)
+                                .labelsHidden()
+                                .tint(BrandPalette.accent)
+                                .onChange(of: isHealthIntegrationEnabled) { _, enabled in
+                                    if enabled {
+                                        connectAndLoadReadinessMetrics()
+                                    } else {
+                                        sleepHours = nil
+                                        trainingStrain = nil
+                                        vo2Max = nil
+                                        activeEnergyKcal = nil
+                                        basalEnergyKcal = nil
+                                        performanceMessage = "Apple Watch fuel balance is off."
+                                    }
+                                }
+                        }
+
+                        Button(healthPrimaryActionTitle) {
+                            if isHealthIntegrationEnabled {
+                                connectAndLoadReadinessMetrics()
+                            } else {
+                                isHealthIntegrationEnabled = true
+                                connectAndLoadReadinessMetrics()
+                            }
+                        }
+                        .buttonStyle(BrandSecondaryButtonStyle())
+                        .disabled(isReadinessLoading || healthKitManager.connectionState == .notAvailable)
+
+                        if let performanceMessage {
+                            Text(performanceMessage)
+                                .font(.custom("AvenirNext-Regular", size: 12))
+                                .foregroundStyle(BrandPalette.textSecondary)
+                        }
                     }
                 }
 
@@ -1995,6 +2252,7 @@ struct HomeView: View {
                                 Text("0.8x").tag(0.8)
                                 Text("0.9x").tag(0.9)
                                 Text("1.0x").tag(1.0)
+                                Text("1.2x").tag(1.2)
                             }
                             .pickerStyle(.segmented)
                             .tint(BrandPalette.accent)
@@ -2160,6 +2418,41 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
+    private func profileThemeButton(_ theme: BrandTheme) -> some View {
+        let isSelected = selectedProfileTheme == theme
+
+        return Button {
+            selectedProfileTheme = theme
+            BrandThemeStore.current = theme
+        } label: {
+            VStack(spacing: 6) {
+                Circle()
+                    .fill(theme.accent)
+                    .frame(width: 26, height: 26)
+                    .overlay(
+                        Circle()
+                            .stroke(isSelected ? BrandPalette.textPrimary : BrandPalette.stroke, lineWidth: isSelected ? 2 : 1)
+                    )
+
+                Text(theme.title)
+                    .font(.custom("AvenirNext-DemiBold", size: 10))
+                    .foregroundStyle(isSelected ? BrandPalette.textPrimary : BrandPalette.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .background(isSelected ? BrandPalette.accent.opacity(0.16) : BrandPalette.surface)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(isSelected ? BrandPalette.accent : BrandPalette.stroke, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(theme.title) theme")
+    }
+
     private func profileImpactMetric(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased())
@@ -2192,7 +2485,7 @@ struct HomeView: View {
         var badges: [RecommendationBadgeKind] = []
         let categoryText = recommendation.restaurant.searchableCategoryText
 
-        if categoryText.contains("protein") || categoryText.contains("grill") || categoryText.contains("chicken") {
+        if isHighProteinRestaurant(recommendation.restaurant) {
             badges.append(.highProtein)
         }
 
@@ -2211,6 +2504,12 @@ struct HomeView: View {
         return Array(badges.prefix(3))
     }
 
+    private func isHighProteinRestaurant(_ restaurant: Restaurant) -> Bool {
+        let text = "\(restaurant.name.lowercased()) \(restaurant.searchableCategoryText)"
+        return ["protein", "grill", "chicken", "steak", "poke", "bbq", "cava", "chipotle", "mediterranean", "seafood", "korean", "jersey mike"]
+            .contains { text.contains($0) }
+    }
+
     private func explainabilityReasons(for recommendation: RestaurantRecommendation) -> [String] {
         var reasons: [String] = []
 
@@ -2220,10 +2519,13 @@ struct HomeView: View {
         }
 
         if let profile, profile.prioritizeHighProtein {
-            let text = recommendation.restaurant.searchableCategoryText
-            if text.contains("protein") || text.contains("grill") || text.contains("chicken") || text.contains("steak") || text.contains("poke") {
+            if isHighProteinRestaurant(recommendation.restaurant) {
                 reasons.append("Matches high-protein preference")
             }
+        }
+
+        if recommendation.restaurant.bestMenuURL != nil {
+            reasons.append("Menu available")
         }
 
         if let profile, let price = recommendation.restaurant.price, price.count <= profile.maxPriceTier {
@@ -2237,7 +2539,7 @@ struct HomeView: View {
         return Array(reasons.prefix(3))
     }
 
-    private func recommendationCard(for recommendation: RestaurantRecommendation, featured: Bool) -> some View {
+    private func recommendationCard(for recommendation: RestaurantRecommendation, rank: Int, featured: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -2252,13 +2554,17 @@ struct HomeView: View {
 
                 Spacer()
 
-                Text("\(recommendation.score)")
-                    .font(.custom("AvenirNext-Heavy", size: 18))
-                    .foregroundStyle(featured ? BrandPalette.backgroundTop : BrandPalette.textPrimary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(featured ? BrandPalette.success : BrandPalette.elevated)
-                    .clipShape(Capsule())
+                VStack(spacing: 2) {
+                    Text("#\(rank)")
+                        .font(.custom("AvenirNext-Heavy", size: 17))
+                    Text("\(recommendation.score)")
+                        .font(.custom("AvenirNext-DemiBold", size: 10))
+                }
+                .foregroundStyle(featured ? BrandPalette.backgroundTop : BrandPalette.textPrimary)
+                .padding(.horizontal, 10)
+                .frame(height: 42)
+                .background(featured ? BrandPalette.success : BrandPalette.elevated)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
             let badges = recommendationBadges(for: recommendation)
@@ -2288,7 +2594,7 @@ struct HomeView: View {
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(BrandPalette.accent)
                         .padding(.top, 2)
-                    Text(targetMealOptionText(for: recommendation))
+                    Text(menuBasedMealRecommendationText(for: recommendation))
                         .font(.custom("AvenirNext-Medium", size: 12))
                         .foregroundStyle(BrandPalette.textPrimary)
                 }
@@ -2353,22 +2659,23 @@ struct HomeView: View {
                 Button {
                     openMenu(for: recommendation.restaurant)
                 } label: {
-                    Label("View Menu", systemImage: "menucard")
-                        .font(.custom("AvenirNext-DemiBold", size: 12))
-                        .frame(maxWidth: .infinity)
+                    fuelActionLabel(title: "Menu", icon: "menucard", isPrimary: false)
                 }
-                .buttonStyle(.bordered)
-                .tint(BrandPalette.accent)
+                .buttonStyle(.plain)
 
                 Button {
                     openSelectedProvider(for: recommendation.restaurant.name)
                 } label: {
-                    Label("Order", systemImage: "scooter")
-                        .font(.custom("AvenirNext-DemiBold", size: 12))
-                        .frame(maxWidth: .infinity)
+                    fuelActionLabel(title: "Order", icon: "scooter", isPrimary: true)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(BrandPalette.success)
+                .buttonStyle(.plain)
+
+                Button {
+                    openDirections(for: recommendation.restaurant)
+                } label: {
+                    fuelActionLabel(title: "Go", icon: "arrow.triangle.turn.up.right.diamond", isPrimary: false)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(14)
@@ -2396,22 +2703,27 @@ struct HomeView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Training Readiness")
+                    Text("Fuel Balance")
                         .font(.custom("AvenirNext-DemiBold", size: 15))
                         .foregroundStyle(BrandPalette.textPrimary)
                     Spacer()
-                    Text(trainingReadinessScore.map { "\($0)/100" } ?? "--")
+                    Text(totalEnergyBurnedKcal.map { "\($0)" } ?? "--")
                         .font(.custom("AvenirNext-Heavy", size: 20))
                         .monospacedDigit()
                         .foregroundStyle(BrandPalette.textPrimary)
                 }
 
-                Text(trainingReadinessLabel)
+                Text(fuelBalanceTitle)
+                    .font(.custom("AvenirNext-Regular", size: 12))
+                    .foregroundStyle(BrandPalette.accent)
+
+                ProgressView(value: Double(totalEnergyBurnedKcal ?? 0), total: Double(max(profile?.dailyCalories ?? 1, 1)))
+                    .tint(BrandPalette.accent)
+
+                Text(fuelBalanceMessage)
                     .font(.custom("AvenirNext-Regular", size: 12))
                     .foregroundStyle(BrandPalette.textSecondary)
-
-                ProgressView(value: Double(trainingReadinessScore ?? 0), total: 100)
-                    .tint(BrandPalette.accent)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(12)
             .background(BrandPalette.surface)
@@ -2423,19 +2735,37 @@ struct HomeView: View {
 
             HStack(spacing: 10) {
                 metricCard(
-                    title: "Sleep",
-                    value: sleepHours.map { String(format: "%.1f h", $0) } ?? "--",
-                    subtitle: "Last Night"
+                    title: "Burned",
+                    value: totalEnergyBurnedKcal.map { "\($0)" } ?? "--",
+                    subtitle: "Today"
                 )
                 metricCard(
-                    title: "Readiness",
+                    title: "Need",
+                    value: profile.map { "\($0.dailyCalories)" } ?? "--",
+                    subtitle: "Daily"
+                )
+                metricCard(
+                    title: "Gap",
+                    value: fuelBalanceGap.map { $0 > 0 ? "+\($0)" : "\($0)" } ?? "--",
+                    subtitle: "Calories"
+                )
+            }
+
+            HStack(spacing: 10) {
+                metricCard(
+                    title: "Active",
+                    value: activeEnergyKcal.map { "\(Int($0.rounded()))" } ?? "--",
+                    subtitle: "Move"
+                )
+                metricCard(
+                    title: "Resting",
+                    value: basalEnergyKcal.map { "\(Int($0.rounded()))" } ?? "--",
+                    subtitle: "Basal"
+                )
+                metricCard(
+                    title: "Ready",
                     value: trainingReadinessScore.map { "\($0)" } ?? "--",
-                    subtitle: "0-100"
-                )
-                metricCard(
-                    title: "VO2 Max",
-                    value: vo2Max.map { String(format: "%.1f", $0) } ?? "--",
-                    subtitle: "ml/kg/min"
+                    subtitle: trainingReadinessLabel
                 )
             }
 
@@ -2446,10 +2776,16 @@ struct HomeView: View {
             }
 
             HStack(spacing: 8) {
-                Button("Refresh") {
-                    loadReadinessMetrics()
+                Button(healthPrimaryActionTitle) {
+                    if isHealthIntegrationEnabled {
+                        connectAndLoadReadinessMetrics()
+                    } else {
+                        isHealthIntegrationEnabled = true
+                        connectAndLoadReadinessMetrics()
+                    }
                 }
                 .buttonStyle(BrandPrimaryButtonStyle())
+                .disabled(isReadinessLoading || healthKitManager.connectionState == .notAvailable)
             }
         }
         .padding(12)
@@ -2457,6 +2793,31 @@ struct HomeView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(BrandPalette.stroke, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var healthPrimaryActionTitle: String {
+        if !isHealthIntegrationEnabled { return "Turn On Apple Watch" }
+        return healthKitManager.connectionState == .authorized ? "Sync Apple Health" : "Connect Apple Health"
+    }
+
+    private func fuelActionLabel(title: String, icon: String, isPrimary: Bool) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .bold))
+            Text(title)
+                .font(.custom("AvenirNext-DemiBold", size: 11))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(isPrimary ? BrandPalette.backgroundTop : BrandPalette.textPrimary)
+        .frame(maxWidth: .infinity)
+        .frame(height: 48)
+        .background(isPrimary ? BrandPalette.accent : BrandPalette.surface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isPrimary ? BrandPalette.accent : BrandPalette.stroke, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -2550,7 +2911,9 @@ struct HomeView: View {
         profileMealsPerDay = min(6, max(1, profile.mealsPerDay))
         profileMaxPriceTier = min(4, max(1, profile.maxPriceTier))
         profilePrioritizeHighProtein = profile.prioritizeHighProtein
-        profileProteinTargetMultiplier = min(1.0, max(0.7, profile.proteinTargetMultiplier))
+        profileProteinTargetMultiplier = min(1.2, max(0.7, profile.proteinTargetMultiplier))
+        selectedProfileTheme = BrandTheme(rawValue: profile.backgroundTheme) ?? BrandThemeStore.current
+        BrandThemeStore.current = selectedProfileTheme
     }
 
     private func requestPostProfilePermissionsIfNeeded() {
@@ -2595,7 +2958,9 @@ struct HomeView: View {
         center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             DispatchQueue.main.async {
                 guard granted else {
-                    if identifier.contains("lunch") {
+                    if identifier.contains("breakfast") {
+                        isBreakfastReminderEnabled = false
+                    } else if identifier.contains("lunch") {
                         isLunchReminderEnabled = false
                     } else {
                         isDinnerReminderEnabled = false
@@ -2629,7 +2994,7 @@ struct HomeView: View {
     }
 
     private func updateNearbyOpenTrigger() {
-        guard let first = closestTenRecommendations.first else {
+        guard let first = topFuelRecommendations.first else {
             nearbyOpenTriggerMessage = nil
             return
         }
@@ -2669,7 +3034,8 @@ struct HomeView: View {
         existingProfile.mealsPerDay = profileMealsPerDay
         existingProfile.maxPriceTier = profileMaxPriceTier
         existingProfile.prioritizeHighProtein = profilePrioritizeHighProtein
-        existingProfile.proteinTargetMultiplier = min(1.0, max(0.7, profileProteinTargetMultiplier))
+        existingProfile.proteinTargetMultiplier = min(1.2, max(0.7, profileProteinTargetMultiplier))
+        existingProfile.backgroundTheme = selectedProfileTheme.rawValue
         existingProfile.dailyCalories = CalorieCalculator.calculate(
             age: existingProfile.age,
             sex: existingProfile.sex,
@@ -2680,6 +3046,7 @@ struct HomeView: View {
             goal: profileGoal
         )
 
+        BrandThemeStore.current = selectedProfileTheme
         appState.currentUserProfile = existingProfile
 
         guard let uid = Auth.auth().currentUser?.uid else {
@@ -2747,6 +3114,16 @@ struct HomeView: View {
     }
 
     private func loadReadinessMetrics() {
+        guard isHealthIntegrationEnabled else {
+            sleepHours = nil
+            trainingStrain = nil
+            vo2Max = nil
+            activeEnergyKcal = nil
+            basalEnergyKcal = nil
+            performanceMessage = "Apple Watch fuel balance is off."
+            return
+        }
+
         healthKitManager.refreshConnectionState()
 
         guard healthKitManager.isAvailable else {
@@ -2762,18 +3139,50 @@ struct HomeView: View {
                     self.sleepHours = metrics.sleepHours
                     self.trainingStrain = metrics.trainingStrain
                     self.vo2Max = metrics.vo2Max
+                    self.activeEnergyKcal = metrics.activeEnergyKcal
+                    self.basalEnergyKcal = metrics.basalEnergyKcal
                     self.isReadinessLoading = false
 
-                    if metrics.sleepHours == nil && metrics.trainingStrain == nil && metrics.vo2Max == nil {
+                    if metrics.sleepHours == nil
+                        && metrics.trainingStrain == nil
+                        && metrics.vo2Max == nil
+                        && metrics.activeEnergyKcal == nil
+                        && metrics.basalEnergyKcal == nil {
                         self.performanceMessage = "Connected. No recent Apple Health data yet."
                     } else {
-                        self.performanceMessage = "Readiness data synced."
+                        self.performanceMessage = "Apple Health fuel balance synced."
                     }
                 }
             } catch {
                 await MainActor.run {
                     self.isReadinessLoading = false
                     self.performanceMessage = "Unable to sync Apple Health right now. Try again."
+                }
+            }
+        }
+    }
+
+    private func connectAndLoadReadinessMetrics() {
+        guard healthKitManager.isAvailable else {
+            performanceMessage = "Apple Health is unavailable on this device."
+            return
+        }
+
+        isReadinessLoading = true
+        performanceMessage = "Opening Apple Health permission..."
+
+        Task {
+            do {
+                try await healthKitManager.requestAuthorization()
+                await MainActor.run {
+                    self.isReadinessLoading = false
+                }
+                loadReadinessMetrics()
+            } catch {
+                await MainActor.run {
+                    self.isReadinessLoading = false
+                    self.performanceMessage = "Apple Health permission was not completed. Open Health permissions in Settings and try again."
+                    self.healthKitManager.refreshConnectionState()
                 }
             }
         }
@@ -2826,6 +3235,26 @@ struct HomeView: View {
         } else {
             openSelectedProvider(for: restaurant.name)
         }
+    }
+
+    private func openDirections(for restaurant: Restaurant) {
+        var components = URLComponents(string: "http://maps.apple.com/")
+
+        if let latitude = restaurant.latitude, let longitude = restaurant.longitude {
+            components?.queryItems = [
+                URLQueryItem(name: "daddr", value: "\(latitude),\(longitude)"),
+                URLQueryItem(name: "q", value: restaurant.name),
+                URLQueryItem(name: "dirflg", value: "d")
+            ]
+        } else {
+            components?.queryItems = [
+                URLQueryItem(name: "q", value: restaurant.name),
+                URLQueryItem(name: "dirflg", value: "d")
+            ]
+        }
+
+        guard let url = components?.url else { return }
+        openURL(url)
     }
 
     func fetchRestaurants(location: CLLocation) {
@@ -2886,6 +3315,7 @@ private struct FullScreenMapExperience: View {
     @Binding var mapCenterCoordinate: CLLocationCoordinate2D?
     let mealTargetCalories: Int?
     let onOpenMenu: (Restaurant) -> Void
+    let onOpenDirections: (Restaurant) -> Void
     let onOrderDoorDash: (String) -> Void
 
     @State private var searchText: String = ""
@@ -2915,7 +3345,7 @@ private struct FullScreenMapExperience: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    BrandWordmark(height: 24)
+                    BrandInlineLockup(markHeight: 30, wordmarkHeight: 38, spacing: 8)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
@@ -2951,8 +3381,7 @@ private struct FullScreenMapExperience: View {
             results = results.filter { recommendation in
                 switch activeQuickFilter {
                 case .highProtein:
-                    let text = recommendation.restaurant.searchableCategoryText
-                    return text.contains("protein") || text.contains("grill") || text.contains("chicken") || text.contains("steak") || text.contains("poke")
+                    return isHighProteinRestaurant(recommendation.restaurant)
                 case .topRated:
                     return recommendation.restaurant.rating >= 4.5
                 case .nearMe:
@@ -2980,7 +3409,8 @@ private struct FullScreenMapExperience: View {
         Array(
             filteredSearchRecommendations
                 .sorted { lhs, rhs in
-                    (lhs.restaurant.distance ?? .greatestFiniteMagnitude) < (rhs.restaurant.distance ?? .greatestFiniteMagnitude)
+                    if lhs.score != rhs.score { return lhs.score > rhs.score }
+                    return (lhs.restaurant.distance ?? .greatestFiniteMagnitude) < (rhs.restaurant.distance ?? .greatestFiniteMagnitude)
                 }
                 .prefix(10)
         )
@@ -2991,8 +3421,8 @@ private struct FullScreenMapExperience: View {
     }
 
     private var visibleMapPoints: [RestaurantMapPoint] {
-        mapPoints.filter { point in
-            visibleRecommendations.contains(where: { $0.id == point.id })
+        visibleRecommendations.compactMap { recommendation in
+            mapPoints.first(where: { $0.id == recommendation.id })
         }
     }
 
@@ -3144,6 +3574,7 @@ private struct FullScreenMapExperience: View {
                 recommendation: recommendation,
                 mealTargetCalories: mealTargetCalories,
                 onOpenMenu: onOpenMenu,
+                onOpenDirections: onOpenDirections,
                 onOrderDoorDash: onOrderDoorDash
             )
         }
@@ -3221,6 +3652,12 @@ private struct FullScreenMapExperience: View {
             .clipShape(Capsule())
             .shadow(color: Color.black.opacity(isSelected ? 0.20 : 0.12), radius: 8, x: 0, y: 4)
         }
+    }
+
+    private func isHighProteinRestaurant(_ restaurant: Restaurant) -> Bool {
+        let text = "\(restaurant.name.lowercased()) \(restaurant.searchableCategoryText)"
+        return ["protein", "grill", "chicken", "steak", "poke", "bbq", "cava", "chipotle", "mediterranean", "seafood", "korean", "jersey mike"]
+            .contains { text.contains($0) }
     }
 
     private func yelpStylePin(number: Int, isSelected: Bool) -> some View {
@@ -3312,29 +3749,19 @@ private struct FullScreenMapExperience: View {
                 Button {
                     onOpenMenu(recommendation.restaurant)
                 } label: {
-                    Label("Menu", systemImage: "menucard")
-                        .font(.custom("AvenirNext-DemiBold", size: 12))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 38)
-                        .background(Color.white.opacity(0.12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Color.white.opacity(0.16), lineWidth: 1)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    mapActionLabel(title: "Menu", icon: "menucard", isPrimary: false)
                 }
 
                 Button {
                     onOrderDoorDash(recommendation.restaurant.name)
                 } label: {
-                    Label("Order", systemImage: "bag")
-                        .font(.custom("AvenirNext-DemiBold", size: 12))
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 38)
-                        .background(mapPrimaryColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    mapActionLabel(title: "Order", icon: "bag", isPrimary: true)
+                }
+
+                Button {
+                    onOpenDirections(recommendation.restaurant)
+                } label: {
+                    mapActionLabel(title: "Go", icon: "arrow.triangle.turn.up.right.diamond", isPrimary: false)
                 }
             }
             .buttonStyle(.plain)
@@ -3362,6 +3789,26 @@ private struct FullScreenMapExperience: View {
         .frame(height: 22)
         .background(mapPrimaryColor)
         .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+    }
+
+    private func mapActionLabel(title: String, icon: String, isPrimary: Bool) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .bold))
+            Text(title)
+                .font(.custom("AvenirNext-DemiBold", size: 11))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(isPrimary ? .black : .white)
+        .frame(maxWidth: .infinity)
+        .frame(height: 46)
+        .background(isPrimary ? mapPrimaryColor : Color.white.opacity(0.12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isPrimary ? mapPrimaryColor : Color.white.opacity(0.16), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private func ratingBadge(_ rating: Double) -> some View {
@@ -3487,25 +3934,40 @@ private struct MapRestaurantDetailSheet: View {
     let recommendation: RestaurantRecommendation
     let mealTargetCalories: Int?
     let onOpenMenu: (Restaurant) -> Void
+    let onOpenDirections: (Restaurant) -> Void
     let onOrderDoorDash: (String) -> Void
 
     private var menuRecommendationText: String {
-        let categoryText = recommendation.restaurant.searchableCategoryText
+        let categoryText = "\(recommendation.restaurant.name.lowercased()) \(recommendation.restaurant.searchableCategoryText)"
         let calorieText = mealTargetCalories.map { "around \($0) calories" } ?? "balanced calories"
+        let prefix = recommendation.restaurant.bestMenuURL == nil ? "Recommended" : "Menu-informed pick"
+
+        if categoryText.contains("chipotle") {
+            return "\(prefix): Chicken bowl with fajita veggies, salsa, and black beans, \(calorieText)."
+        }
+        if categoryText.contains("cava") {
+            return "\(prefix): Grilled chicken greens + grains bowl with sauce on the side, \(calorieText)."
+        }
+        if categoryText.contains("sweetgreen") {
+            return "\(prefix): Harvest bowl with extra chicken or protein salad, \(calorieText)."
+        }
+        if categoryText.contains("panera") {
+            return "\(prefix): Greek salad with chicken or turkey chili, \(calorieText)."
+        }
 
         if categoryText.contains("poke") {
-            return "Recommended: Salmon poke bowl with extra greens, \(calorieText)."
+            return "\(prefix): Salmon poke bowl with extra greens, \(calorieText)."
         }
         if categoryText.contains("mediterranean") {
-            return "Recommended: Chicken + hummus bowl with double veggies, \(calorieText)."
+            return "\(prefix): Chicken + hummus bowl with double veggies, \(calorieText)."
         }
         if categoryText.contains("grill") || categoryText.contains("chicken") {
-            return "Recommended: Grilled chicken plate with rice and vegetables, \(calorieText)."
+            return "\(prefix): Grilled chicken plate with rice and vegetables, \(calorieText)."
         }
         if categoryText.contains("salad") || categoryText.contains("healthy") {
-            return "Recommended: Protein salad with lean chicken and olive oil dressing, \(calorieText)."
+            return "\(prefix): Protein salad with lean chicken and olive oil dressing, \(calorieText)."
         }
-        return "Recommended: Lean protein bowl with vegetables, \(calorieText)."
+        return "\(prefix): Lean protein bowl with vegetables, \(calorieText)."
     }
 
     var body: some View {
@@ -3548,7 +4010,16 @@ private struct MapRestaurantDetailSheet: View {
                 Button {
                     onOpenMenu(recommendation.restaurant)
                 } label: {
-                    Label("View Menu", systemImage: "menucard")
+                    Label("Menu", systemImage: "menucard")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(BrandPalette.accent)
+
+                Button {
+                    onOpenDirections(recommendation.restaurant)
+                } label: {
+                    Label("Go", systemImage: "arrow.triangle.turn.up.right.diamond")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -3557,7 +4028,7 @@ private struct MapRestaurantDetailSheet: View {
                 Button {
                     onOrderDoorDash(recommendation.restaurant.name)
                 } label: {
-                    Label("Order Delivery", systemImage: "bag")
+                    Label("Order", systemImage: "bag")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(BrandPrimaryButtonStyle())

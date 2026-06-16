@@ -1,18 +1,83 @@
 import SwiftUI
 
+enum BrandTheme: String, CaseIterable, Identifiable, Codable {
+    case purple
+    case neonGreen
+    case pink
+    case blue
+    case black
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .purple: return "Purple"
+        case .neonGreen: return "Green"
+        case .pink: return "Pink"
+        case .blue: return "Blue"
+        case .black: return "Black"
+        }
+    }
+
+    var accent: Color {
+        switch self {
+        case .purple: return Color(red: 0.62, green: 0.43, blue: 1.00)
+        case .neonGreen: return Color(red: 0.70, green: 1.00, blue: 0.22)
+        case .pink: return Color(red: 1.00, green: 0.38, blue: 0.72)
+        case .blue: return Color(red: 0.26, green: 0.68, blue: 1.00)
+        case .black: return Color(red: 0.86, green: 0.88, blue: 0.84)
+        }
+    }
+
+    var backgroundTop: Color {
+        switch self {
+        case .purple: return Color(red: 0.05, green: 0.03, blue: 0.10)
+        case .neonGreen: return Color.black
+        case .pink: return Color(red: 0.10, green: 0.03, blue: 0.07)
+        case .blue: return Color(red: 0.02, green: 0.05, blue: 0.10)
+        case .black: return Color.black
+        }
+    }
+
+    var backgroundBottom: Color {
+        switch self {
+        case .purple: return Color(red: 0.025, green: 0.022, blue: 0.040)
+        case .neonGreen: return Color(red: 0.018, green: 0.021, blue: 0.019)
+        case .pink: return Color(red: 0.035, green: 0.020, blue: 0.030)
+        case .blue: return Color(red: 0.016, green: 0.025, blue: 0.040)
+        case .black: return Color(red: 0.025, green: 0.026, blue: 0.025)
+        }
+    }
+}
+
+enum BrandThemeStore {
+    static let storageKey = "fytrr.backgroundTheme"
+
+    static var current: BrandTheme {
+        get {
+            let rawValue = UserDefaults.standard.string(forKey: storageKey) ?? BrandTheme.neonGreen.rawValue
+            return BrandTheme(rawValue: rawValue) ?? .neonGreen
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: storageKey)
+        }
+    }
+}
+
 enum BrandPalette {
-    static let backgroundTop = Color.black
-    static let backgroundBottom = Color(red: 0.025, green: 0.028, blue: 0.026)
+    static var theme: BrandTheme { BrandThemeStore.current }
+    static var backgroundTop: Color { theme.backgroundTop }
+    static var backgroundBottom: Color { theme.backgroundBottom }
     static let surface = Color(red: 0.055, green: 0.058, blue: 0.056)
     static let elevated = Color(red: 0.085, green: 0.09, blue: 0.086)
     static let overlay = Color.white.opacity(0.07)
-    static let stroke = Color(red: 0.58, green: 1.00, blue: 0.00).opacity(0.22)
+    static var stroke: Color { accent.opacity(0.18) }
     static let textPrimary = Color.white
     static let textSecondary = Color(red: 0.75, green: 0.78, blue: 0.74)
     static let textTertiary = Color(red: 0.50, green: 0.54, blue: 0.49)
-    static let accent = Color(red: 0.58, green: 1.00, blue: 0.00)
+    static var accent: Color { theme.accent }
     static let accentSecondary = Color.white
-    static let success = Color(red: 0.58, green: 1.00, blue: 0.00)
+    static var success: Color { theme.accent }
     static let warning = Color(red: 1.00, green: 0.74, blue: 0.28)
     static let destructive = Color(red: 1.00, green: 0.24, blue: 0.24)
 }
@@ -26,7 +91,7 @@ struct BrandBackground: View {
         )
         .overlay(alignment: .top) {
             LinearGradient(
-                colors: [BrandPalette.accent.opacity(0.12), .clear],
+                colors: [BrandPalette.accent.opacity(0.08), .clear],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -95,7 +160,7 @@ struct BrandNeonLogo: View {
     var size: CGFloat = 168
 
     var body: some View {
-        Image("FYTRRNeonLogo")
+        Image("FYTRRLogo")
             .resizable()
             .renderingMode(.original)
             .scaledToFit()
@@ -108,7 +173,7 @@ struct BrandWordmark: View {
     var height: CGFloat = 28
 
     var body: some View {
-        Image("FYTRRWordmarkLight")
+        Image("FYTRRWordmark")
             .resizable()
             .renderingMode(.original)
             .scaledToFit()
