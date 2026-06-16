@@ -4,6 +4,8 @@
 
 1. Add production Yelp API key.
    - Current placeholder: `YOUR_YELP_API_KEY`
+   - A previously used Yelp Fusion key was found locally, but Yelp rejected it with `TRIAL_EXPIRED`.
+   - Upgrade the Yelp developer app or create a new active production key before uploading the replacement build.
    - Affected files/settings:
      - `FYTRR-2026-Info.plist`
      - `FYTRR 2026/FYTRR-2026-Info.plist`
