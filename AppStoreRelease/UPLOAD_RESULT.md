@@ -2,7 +2,7 @@
 
 ## App Store Connect Upload
 
-Status: Uploaded successfully
+Status: Build 6 archived successfully; App Store Connect upload blocked by local Xcode account credentials
 
 Latest uploaded build:
 - Version: `1.0`
@@ -23,10 +23,22 @@ Apple response:
 ## Validation Completed
 
 - Simulator build succeeded.
-- iOS archive succeeded.
+- iOS archive succeeded for build `5`.
 - Archive `1.0` build `5` verified with non-placeholder `YELP_API_KEY` present in the built app plist.
 - App Store Connect export succeeded.
 - App Store Connect upload succeeded.
+- iOS archive succeeded for version `1.0` build `6` at `/tmp/FYTRR-2026-build6.xcarchive`.
+- Archive `1.0` build `6` verified with non-placeholder `YELP_API_KEY` present in the built app plist.
+
+## Build 6 Upload Attempt
+
+- Attempted: `2026-06-16 23:16 PDT`
+- Version: `1.0`
+- Build: `6`
+- Archive path: `/tmp/FYTRR-2026-build6.xcarchive`
+- Included latest app updates: FYTRR Credits v1, Fuel readiness move, and improved Apple Maps directions fallback.
+- Upload/export blocker: Xcode account credentials are invalid locally. Xcode reported the saved App Store Connect account is missing `Xcode-Username` in Keychain.
+- Next action: Open Xcode, go to Settings > Accounts, remove/re-add or re-authenticate the Apple Developer account, then rerun App Store Connect upload for `/tmp/FYTRR-2026-build6.xcarchive`.
 
 ## Upload Warnings
 

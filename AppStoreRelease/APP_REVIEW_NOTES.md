@@ -13,7 +13,12 @@ FYTRR is a nutrition and nearby meal discovery app. Location access is used to f
 
 AI Coach is not part of the user-facing release experience in version 1.0. Any AI Coach code path is hidden from navigation and should not be evaluated as a live feature for this submission.
 
+FYTRR Credits are a beta engagement feature that tracks in-app progress toward future meal rewards, partner offers, or gift-card redemptions. Credits are not currently redeemable for cash, DoorDash balance, or any immediate monetary value in this build.
+
 The app does not provide medical advice. Nutrition and restaurant guidance is informational and intended for general wellness and meal planning.
+
+## TestFlight Test Information
+Please test onboarding/sign-in, location permission, nearby Fuel recommendations, Map/Go directions, Apple Health sync, daily fuel check-in, FYTRR Credits, meal reminders, and profile/theme settings. Send screenshots for anything confusing or broken.
 
 ## Permission Notes
 - Location When In Use: used to show nearby restaurant and meal options.
