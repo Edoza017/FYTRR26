@@ -3509,7 +3509,7 @@ struct HomeView: View {
     }
 
     private func openDirections(for restaurant: Restaurant) {
-        var components = URLComponents(string: "http://maps.apple.com/")
+        var components = URLComponents(string: "https://maps.apple.com/")
 
         if let latitude = restaurant.latitude, let longitude = restaurant.longitude {
             components?.queryItems = [
@@ -3518,7 +3518,11 @@ struct HomeView: View {
                 URLQueryItem(name: "dirflg", value: "d")
             ]
         } else {
+            let destination = [restaurant.name, restaurant.formattedAddress]
+                .compactMap { $0 }
+                .joined(separator: ", ")
             components?.queryItems = [
+                URLQueryItem(name: "daddr", value: destination),
                 URLQueryItem(name: "q", value: restaurant.name),
                 URLQueryItem(name: "dirflg", value: "d")
             ]
