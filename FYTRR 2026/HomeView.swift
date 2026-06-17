@@ -157,9 +157,13 @@ struct HomeView: View {
     @State private var mapSearchCenter: CLLocationCoordinate2D?
     @State private var nearbyOpenTriggerMessage: String?
     @State private var fuelCheckInMessage: String?
+    @State private var creditToastMessage: String?
     @State private var reminderStatusMessage: String?
     @AppStorage("fytrr.lastFuelCheckInDay") private var lastFuelCheckInDay = ""
     @AppStorage("fytrr.currentFuelStreak") private var currentFuelStreak = 0
+    @AppStorage("fytrr.creditBalance") private var fytrrCreditBalance = 0
+    @AppStorage("fytrr.lifetimeCredits") private var fytrrLifetimeCredits = 0
+    @AppStorage("fytrr.lastMealOrderCreditKey") private var lastMealOrderCreditKey = ""
     @AppStorage("fytrr.breakfastReminderEnabled") private var isBreakfastReminderEnabled = false
     @AppStorage("fytrr.lunchReminderEnabled") private var isLunchReminderEnabled = false
     @AppStorage("fytrr.dinnerReminderEnabled") private var isDinnerReminderEnabled = false
@@ -179,6 +183,10 @@ struct HomeView: View {
     private let service = RestaurantService()
     private let recommendationEngine = RecommendationEngine()
     private let aiCoachService = AIFuelCoachService()
+    private let dailyFuelCreditAward = 10
+    private let mealOrderCreditAward = 15
+    private let weeklyStreakCreditBonus = 25
+    private let mealRewardCreditTarget = 500
     private static let fuelDayFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -267,6 +275,40 @@ struct HomeView: View {
 
     private var streakTitleText: String {
         currentFuelStreak == 1 ? "1-day fuel streak" : "\(currentFuelStreak)-day fuel streak"
+    }
+
+    private var nextMealRewardCreditTarget: Int {
+        guard fytrrCreditBalance > 0 else { return mealRewardCreditTarget }
+        return ((fytrrCreditBalance / mealRewardCreditTarget) + 1) * mealRewardCreditTarget
+    }
+
+    private var creditsToNextMealReward: Int {
+        max(0, nextMealRewardCreditTarget - fytrrCreditBalance)
+    }
+
+    private var mealRewardCreditProgress: Double {
+        guard mealRewardCreditTarget > 0 else { return 0 }
+        if fytrrCreditBalance > 0 && fytrrCreditBalance % mealRewardCreditTarget == 0 {
+            return 1
+        }
+        return min(1.0, max(0.0, Double(fytrrCreditBalance % mealRewardCreditTarget) / Double(mealRewardCreditTarget)))
+    }
+
+    private var creditTierTitle: String {
+        switch fytrrCreditBalance {
+        case 0: return "Start earning today"
+        case 1...99: return "Fuel Starter"
+        case 100...249: return "Meal Credit Builder"
+        case 250...499: return "Halfway to Reward"
+        default: return "Reward Ready"
+        }
+    }
+
+    private var creditRewardMessage: String {
+        if fytrrCreditBalance >= mealRewardCreditTarget && fytrrCreditBalance % mealRewardCreditTarget == 0 {
+            return "Meal reward ready. Keep stacking credits while FYTRR prepares redemptions."
+        }
+        return "\(creditsToNextMealReward) credits until your next future meal reward."
     }
 
     private var mapPoints: [RestaurantMapPoint] {
@@ -919,6 +961,133 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
+    private var creditsMiniBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "creditcard.fill")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(BrandPalette.backgroundTop)
+                .frame(width: 30, height: 30)
+                .background(BrandPalette.accent)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(fytrrCreditBalance) FYTRR Credits")
+                    .font(.custom("AvenirNext-Heavy", size: 14))
+                    .foregroundStyle(BrandPalette.textPrimary)
+                Text(creditRewardMessage)
+                    .font(.custom("AvenirNext-Regular", size: 11))
+                    .foregroundStyle(BrandPalette.textSecondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            Text(creditTierTitle.uppercased())
+                .font(.custom("AvenirNext-DemiBold", size: 9))
+                .foregroundStyle(BrandPalette.accent)
+                .padding(.horizontal, 8)
+                .frame(height: 22)
+                .background(BrandPalette.accent.opacity(0.12))
+                .clipShape(Capsule())
+        }
+        .padding(10)
+        .background(BrandPalette.surface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(BrandPalette.stroke, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var profileCreditsSummary: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(BrandPalette.backgroundTop)
+                    .frame(width: 44, height: 44)
+                    .background(BrandPalette.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(fytrrCreditBalance) credits")
+                        .font(.custom("AvenirNext-Heavy", size: 22))
+                        .monospacedDigit()
+                        .foregroundStyle(BrandPalette.textPrimary)
+                    Text(creditTierTitle)
+                        .font(.custom("AvenirNext-DemiBold", size: 12))
+                        .foregroundStyle(BrandPalette.accent)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("\(fytrrLifetimeCredits)")
+                        .font(.custom("AvenirNext-Heavy", size: 16))
+                        .monospacedDigit()
+                        .foregroundStyle(BrandPalette.textPrimary)
+                    Text("lifetime")
+                        .font(.custom("AvenirNext-Regular", size: 11))
+                        .foregroundStyle(BrandPalette.textSecondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Future meal reward")
+                        .font(.custom("AvenirNext-DemiBold", size: 12))
+                        .foregroundStyle(BrandPalette.textSecondary)
+                    Spacer()
+                    Text("\(Int((mealRewardCreditProgress * 100).rounded()))%")
+                        .font(.custom("AvenirNext-DemiBold", size: 12))
+                        .foregroundStyle(BrandPalette.textSecondary)
+                }
+
+                ProgressView(value: mealRewardCreditProgress)
+                    .tint(BrandPalette.accent)
+
+                Text(creditRewardMessage)
+                    .font(.custom("AvenirNext-Regular", size: 12))
+                    .foregroundStyle(BrandPalette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 7) {
+                creditEarnRuleRow(icon: "checkmark.circle.fill", title: "Daily fuel check-in", value: "+\(dailyFuelCreditAward)")
+                creditEarnRuleRow(icon: "flame.fill", title: "Every 7-day streak", value: "+\(weeklyStreakCreditBonus)")
+                creditEarnRuleRow(icon: "bag.fill", title: "Open order flow", value: "+\(mealOrderCreditAward)")
+            }
+            .padding(10)
+            .background(BrandPalette.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Text("Credits are tracked in FYTRR now and can support future meal rewards, partner offers, or gift-card redemptions.")
+                .font(.custom("AvenirNext-Regular", size: 12))
+                .foregroundStyle(BrandPalette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func creditEarnRuleRow(icon: String, title: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(BrandPalette.accent)
+                .frame(width: 18)
+
+            Text(title)
+                .font(.custom("AvenirNext-Regular", size: 12))
+                .foregroundStyle(BrandPalette.textPrimary)
+
+            Spacer()
+
+            Text(value)
+                .font(.custom("AvenirNext-Heavy", size: 12))
+                .foregroundStyle(BrandPalette.accent)
+        }
+    }
+
     private func metricCard(title: String, value: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title.uppercased())
@@ -1124,6 +1293,13 @@ struct HomeView: View {
             if let fuelCheckInMessage {
                 Text(fuelCheckInMessage)
                     .font(.custom("AvenirNext-Regular", size: 12))
+                    .foregroundStyle(BrandPalette.accent)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let creditToastMessage {
+                Text(creditToastMessage)
+                    .font(.custom("AvenirNext-DemiBold", size: 12))
                     .foregroundStyle(BrandPalette.accent)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -1643,6 +1819,16 @@ struct HomeView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
+            if let creditToastMessage {
+                Text(creditToastMessage)
+                    .font(.custom("AvenirNext-DemiBold", size: 12))
+                    .foregroundStyle(BrandPalette.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(BrandPalette.accent.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
             HStack(spacing: 8) {
                 providerQuickActionButton(provider: .doorDash, logoText: "D", activeColor: Color(red: 0.74, green: 0.22, blue: 0.20))
                 providerQuickActionButton(provider: .uberEats, logoText: "U", activeColor: Color(red: 0.16, green: 0.52, blue: 0.30))
@@ -2113,6 +2299,10 @@ struct HomeView: View {
 
                         Spacer()
                     }
+                }
+
+                profileSectionCard(title: "FYTRR Credits") {
+                    profileCreditsSummary
                 }
 
                 profileSectionCard(title: "App Theme") {
@@ -2737,6 +2927,8 @@ struct HomeView: View {
                 }
             }
 
+            creditsMiniBanner
+
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Today's Balance")
@@ -2981,6 +3173,7 @@ struct HomeView: View {
         let today = Self.fuelDayFormatter.string(from: Date())
         guard lastFuelCheckInDay != today else {
             fuelCheckInMessage = "Today is already logged. Your streak is set."
+            creditToastMessage = "Daily credits already earned. Come back tomorrow for +\(dailyFuelCreditAward)."
             return
         }
 
@@ -2988,6 +3181,31 @@ struct HomeView: View {
         currentFuelStreak = lastFuelCheckInDay == yesterday ? currentFuelStreak + 1 : 1
         lastFuelCheckInDay = today
         fuelCheckInMessage = "Fuel logged from \(source). \(streakTitleText) active."
+
+        let streakBonus = currentFuelStreak % 7 == 0 ? weeklyStreakCreditBonus : 0
+        let totalAward = dailyFuelCreditAward + streakBonus
+        let reason: String
+        if streakBonus > 0 {
+            reason = "\(source) and \(currentFuelStreak)-day streak"
+        } else {
+            reason = source
+        }
+        awardCredits(totalAward, reason: reason)
+    }
+
+    private func awardCredits(_ amount: Int, reason: String) {
+        guard amount > 0 else { return }
+
+        let previousRewardCount = fytrrCreditBalance / mealRewardCreditTarget
+        fytrrCreditBalance += amount
+        fytrrLifetimeCredits += amount
+        let newRewardCount = fytrrCreditBalance / mealRewardCreditTarget
+
+        if newRewardCount > previousRewardCount {
+            creditToastMessage = "+\(amount) FYTRR Credits for \(reason). Future meal reward unlocked."
+        } else {
+            creditToastMessage = "+\(amount) FYTRR Credits for \(reason). \(creditsToNextMealReward) to next reward."
+        }
     }
 
     private func updateFuelReminder(identifier: String, enabled: Bool, hour: Int, minute: Int) {
@@ -3062,6 +3280,15 @@ struct HomeView: View {
         ProfileStore.addMealOrder(entry, uid: profileStorageID)
         mealOrderHistory = ProfileStore.loadMealHistory(uid: profileStorageID)
         registerFuelCheckIn(source: restaurantName)
+
+        let today = Self.fuelDayFormatter.string(from: Date())
+        let creditKey = "\(today)|\(provider.rawValue)|\(restaurantName.lowercased())"
+        if lastMealOrderCreditKey != creditKey {
+            lastMealOrderCreditKey = creditKey
+            awardCredits(mealOrderCreditAward, reason: "opening \(provider.rawValue)")
+        } else {
+            creditToastMessage = "Order credits already earned for this pick today."
+        }
 
         if mealOrderHistory.count % 10 == 0 {
             orderCelebrationMessage = "Impact unlocked: You just funded 1 child meal."
