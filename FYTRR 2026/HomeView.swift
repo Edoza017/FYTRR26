@@ -1057,7 +1057,6 @@ struct HomeView: View {
     private var releaseHomeContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             dailyFuelPlanCard
-            performanceDashboard
             fuelStreakReminderCard
         }
     }
@@ -1538,6 +1537,8 @@ struct HomeView: View {
 
     private var recommendationsBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
+            performanceDashboard
+
             HStack {
                 sectionHeader("Best Nearby Fuel")
                 Spacer()
@@ -2710,20 +2711,35 @@ struct HomeView: View {
 
     private var performanceDashboard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Readiness")
-                    .font(.custom("AvenirNext-DemiBold", size: 16))
-                    .foregroundStyle(BrandPalette.textPrimary)
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Daily Fuel Readiness")
+                        .font(.custom("AvenirNext-Heavy", size: 17))
+                        .foregroundStyle(BrandPalette.textPrimary)
+                    Text("Check once a day before you pick where to eat.")
+                        .font(.custom("AvenirNext-Regular", size: 12))
+                        .foregroundStyle(BrandPalette.textSecondary)
+                }
+
                 Spacer()
+
                 if isReadinessLoading {
                     ProgressView()
                         .tint(BrandPalette.success)
+                } else {
+                    Text(appleHealthStatusText.uppercased())
+                        .font(.custom("AvenirNext-DemiBold", size: 10))
+                        .foregroundStyle(BrandPalette.backgroundTop)
+                        .padding(.horizontal, 9)
+                        .frame(height: 24)
+                        .background(BrandPalette.accent)
+                        .clipShape(Capsule())
                 }
             }
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Fuel Balance")
+                    Text("Today's Balance")
                         .font(.custom("AvenirNext-DemiBold", size: 15))
                         .foregroundStyle(BrandPalette.textPrimary)
                     Spacer()
@@ -2806,6 +2822,13 @@ struct HomeView: View {
                 }
                 .buttonStyle(BrandPrimaryButtonStyle())
                 .disabled(isReadinessLoading || healthKitManager.connectionState == .notAvailable)
+
+                Button(hasCheckedInToday ? "Checked In" : "Log Fuel") {
+                    registerFuelCheckIn(source: "Fuel readiness")
+                }
+                .buttonStyle(BrandSecondaryButtonStyle())
+                .disabled(hasCheckedInToday)
+                .opacity(hasCheckedInToday ? 0.72 : 1)
             }
         }
         .padding(12)
