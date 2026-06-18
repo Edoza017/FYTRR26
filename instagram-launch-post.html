@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FYTRR Instagram Launch Post</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030507;
+      --blue: #25a9ff;
+      --blue2: #73d7ff;
+      --green: #a8ff3e;
+      --text: #f7fbff;
+      --muted: #a7b3bf;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #111;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .post {
+      position: relative;
+      width: min(100vw, 1080px);
+      aspect-ratio: 1;
+      overflow: hidden;
+      padding: 74px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 78% 16%, rgba(37, 169, 255, 0.34), transparent 34%),
+        radial-gradient(circle at 10% 88%, rgba(168, 255, 62, 0.16), transparent 32%),
+        linear-gradient(145deg, #07121b 0%, var(--bg) 62%);
+    }
+
+    .logo {
+      width: 250px;
+      height: auto;
+      display: block;
+      margin-bottom: 90px;
+    }
+
+    .eyebrow {
+      color: var(--blue2);
+      text-transform: uppercase;
+      font-size: 26px;
+      font-weight: 900;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      max-width: 840px;
+      margin: 0;
+      font-size: 104px;
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      max-width: 760px;
+      margin-top: 28px;
+      color: #dbe8f2;
+      font-size: 34px;
+      line-height: 1.24;
+      font-weight: 800;
+    }
+
+    .score {
+      position: absolute;
+      right: 74px;
+      bottom: 178px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 24px 26px;
+      border-radius: 16px;
+      border: 1px solid rgba(37, 169, 255, 0.38);
+      background: rgba(3, 5, 7, 0.9);
+      box-shadow: 0 34px 90px rgba(0, 0, 0, 0.48);
+    }
+
+    .score strong {
+      color: var(--green);
+      font-size: 76px;
+      line-height: 1;
+    }
+
+    .score span {
+      display: block;
+      color: var(--muted);
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 900;
+      max-width: 190px;
+    }
+
+    .footer {
+      position: absolute;
+      left: 74px;
+      right: 74px;
+      bottom: 70px;
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      color: var(--muted);
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .footer b { color: var(--blue2); }
+  </style>
+</head>
+<body>
+  <article class="post" aria-label="FYTRR Instagram launch post">
+    <img class="logo" src="./assets/fytrr-wordmark-blue.png" alt="FYTRR">
+    <div class="eyebrow">Find Your Fuel</div>
+    <h1>Healthier nearby meals in seconds.</h1>
+    <p class="sub">FYTRR ranks restaurant meals around your goals, protein needs, activity, and location.</p>
+    <div class="score">
+      <strong>94</strong>
+      <span>Best Nearby Fuel</span>
+    </div>
+    <div class="footer">
+      <span>Join the TestFlight</span>
+      <span><b>10 meals</b> helps feed a child</span>
+    </div>
+  </article>
+</body>
+</html>
