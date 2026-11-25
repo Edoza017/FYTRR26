@@ -3,31 +3,177 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Get help with PEAKFORM workouts, plans, and account settings.">
-  <title>PEAKFORM Support</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#111513">
+  <meta name="description" content="Plan your strength and cardio week, find today's workout, and track what you actually trained. Try PEAKFORM on TestFlight for iPhone and iPad.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PEAKFORM | Know what to train today">
+  <meta property="og:description" content="Build your strength and cardio week. Start today's workout. Track the work you put in.">
+  <meta property="og:url" content="https://edoza017.github.io/FYTRR26/peakform/">
+  <meta property="og:image" content="https://edoza017.github.io/FYTRR26/peakform/site-assets/social.jpg">
+  <meta property="og:image:alt" content="An athlete gripping a loaded barbell in a dark training gym">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://edoza017.github.io/FYTRR26/peakform/">
+  <link rel="icon" href="site-assets/icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="site-assets/icon.png">
+  <link rel="stylesheet" href="site.css">
+  <script src="site.js" defer></script>
+  <title>PEAKFORM | Know what to train today</title>
 </head>
 <body>
-  <main>
-    <header>
-      <p class="brand">PEAK<span>FORM</span></p>
-      <h1>Support</h1>
-      <p>Get help with training plans, saved workouts, and your account.</p>
-    </header>
-    <section aria-labelledby="contact">
-      <h2 id="contact">Contact PEAKFORM</h2>
-      <p>Email <a href="mailto:edoza017@gmail.com">edoza017@gmail.com</a> and tell us what happened. Include your device model, iOS version, and app version if you know them. Keep health answers, passwords, and other private details out of the message.</p>
-      <p>Using the beta? You can also send feedback from PEAKFORM’s TestFlight page.</p>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap topbar">
+      <a class="wordmark" href="./" aria-label="PEAKFORM home">
+        <span class="mark" aria-hidden="true"></span>
+        <span>PEAK<span class="brand-accent">FORM</span></span>
+      </a>
+      <nav aria-label="Main">
+        <a href="#inside">Inside the app</a>
+        <a href="#questions">FAQ</a>
+        <a href="support.html">Support</a>
+      </nav>
+      <a class="button button-outline header-join" href="https://testflight.apple.com/join/Tm3gWxA2">Join the beta</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="welcome">
+      <img class="hero-image" src="site-assets/hero.webp" alt="" width="1200" height="800" fetchpriority="high">
+      <div class="wrap hero-content">
+        <p class="eyebrow">PEAKFORM Performance Coach</p>
+        <h1 id="welcome">Know what to<br><em>train today.</em></h1>
+        <p class="hero-copy">Plan strength and cardio in one week. Open the app, see what’s next, and log the work you put in.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="https://testflight.apple.com/join/Tm3gWxA2">Get it on TestFlight</a>
+          <a class="text-link" href="#inside">See how it works</a>
+        </div>
+        <p class="device-note">Free beta for iPhone and iPad</p>
+      </div>
     </section>
-    <section aria-labelledby="training">
-      <h2 id="training">Find your training</h2>
-      <p>Use Quick Start to build a starter week. Open Home to find today’s workout, then use Track to see what you saved. Log a working set or actual cardio time to save a completed session.</p>
+
+    <section class="experience" id="inside" aria-labelledby="experience-title">
+      <div class="wrap experience-layout">
+        <div class="experience-copy">
+          <p class="eyebrow">Inside the app</p>
+          <h2 id="experience-title">A week you can<br>actually train.</h2>
+          <p class="section-copy">Build a starter week around your time and equipment. Move a session when life changes, then pick up where you left off.</p>
+
+          <div class="screen-tabs" role="tablist" aria-label="Explore app screens" aria-orientation="vertical" hidden>
+            <button type="button" role="tab" aria-selected="true" aria-controls="screen-today" id="tab-today">
+              <span><strong>See what’s next</strong><small>Start your next session from Home.</small></span>
+            </button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="screen-planner" id="tab-planner" tabindex="-1">
+              <span><strong>Plan your week</strong><small>Schedule lifting and cardio side by side.</small></span>
+            </button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="screen-workout" id="tab-workout" tabindex="-1">
+              <span><strong>Log your workout</strong><small>Record sets and weights or run a cardio timer.</small></span>
+            </button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="screen-track" id="tab-track" tabindex="-1">
+              <span><strong>Review your progress</strong><small>Find your strength and cardio sessions in Track.</small></span>
+            </button>
+          </div>
+          <noscript>
+            <ul>
+              <li>Start your next session from Home.</li>
+              <li>Schedule strength and cardio side by side.</li>
+              <li>Log sets, weights, and timed cardio.</li>
+              <li>Find completed sessions in Track.</li>
+            </ul>
+          </noscript>
+        </div>
+
+        <div class="screen-stage">
+          <figure id="screen-today" role="tabpanel" aria-labelledby="tab-today">
+            <img class="phone-screen" src="site-assets/today.webp" alt="PEAKFORM Home showing a scheduled Full Body A workout and the current week" width="650" height="1413" loading="lazy">
+            <figcaption>Home</figcaption>
+          </figure>
+          <figure id="screen-planner" role="tabpanel" aria-labelledby="tab-planner" hidden>
+            <img class="phone-screen" src="site-assets/planner.webp" alt="Weekly Planner showing scheduled strength and cardio sessions" width="650" height="1413" loading="lazy">
+            <figcaption>Weekly Planner</figcaption>
+          </figure>
+          <figure id="screen-workout" role="tabpanel" aria-labelledby="tab-workout" hidden>
+            <img class="phone-screen" src="site-assets/workout.webp" alt="Workout logger showing an exercise and a recorded working set" width="650" height="1413" loading="lazy">
+            <figcaption>Workout logger</figcaption>
+          </figure>
+          <figure id="screen-track" role="tabpanel" aria-labelledby="tab-track" hidden>
+            <img class="phone-screen" src="site-assets/track.webp" alt="Track showing completed strength and cardio sessions in training history" width="650" height="1413" loading="lazy">
+            <figcaption>Track</figcaption>
+          </figure>
+        </div>
+      </div>
     </section>
-    <section aria-labelledby="account">
-      <h2 id="account">Manage your data</h2>
-      <p>Open Profile and find Account. Choose <strong>Delete account</strong> if signed in or <strong>Erase guest data</strong> if using the app as a guest. The confirmation explains what will be removed.</p>
-      <p><a href="privacy.html">Read the PEAKFORM Privacy Policy</a></p>
+
+    <section class="features" aria-label="More ways to train">
+      <div class="wrap feature-layout">
+        <article>
+          <div class="feature-symbol symbol-shuffle" aria-hidden="true"></div>
+          <h3>Make time to train.</h3>
+          <p>Use Shuffle Workout for a session that fits the time and equipment you have. Swap movements from the exercise library.</p>
+        </article>
+        <article>
+          <div class="feature-symbol symbol-cardio" aria-hidden="true"></div>
+          <h3>Bring cardio into the plan.</h3>
+          <p>Use interval timers and estimated heart-rate zones for steady sessions and harder conditioning days.</p>
+        </article>
+        <article>
+          <div class="feature-symbol symbol-habits" aria-hidden="true"></div>
+          <h3>Build habits around training.</h3>
+          <p>Track water, choose nutrition habits, and set recovery goals you can check off alongside your workouts.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="faq" id="questions" aria-labelledby="faq-title">
+      <div class="wrap faq-layout">
+        <div>
+          <p class="eyebrow">FAQ</p>
+          <h2 id="faq-title">Before you start.</h2>
+          <p class="section-copy">Need help with your plan, account, or training history? <a href="support.html">Visit PEAKFORM Support.</a></p>
+        </div>
+        <div class="answers">
+          <details>
+            <summary>How do I install the beta?</summary>
+            <p>Open the invite on your iPhone or iPad. If you need the TestFlight app, Apple will show you how to install it. Then accept the invite and install PEAKFORM.</p>
+          </details>
+          <details>
+            <summary>Do I need an account?</summary>
+            <p>You can choose Continue without account after Quick Start. Your training plan and workouts are saved on the device.</p>
+          </details>
+          <details>
+            <summary>Can I change the workout I’m scheduled to do?</summary>
+            <p>Yes. Move a session in Weekly Planner, swap exercises from your library, or use Shuffle Workout when you want to train something different.</p>
+          </details>
+          <details>
+            <summary>How do I send feedback?</summary>
+            <p>Open PEAKFORM in TestFlight and choose Send Beta Feedback. Include what you were trying to do and what happened, keeping personal information out of your report.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="join" aria-labelledby="join-title">
+      <div class="wrap join-layout">
+        <div>
+          <h2 id="join-title">Start with one workout.</h2>
+          <p>Build a starter week and see how PEAKFORM fits your training.</p>
+        </div>
+        <a class="button button-dark" href="https://testflight.apple.com/join/Tm3gWxA2">Join the TestFlight beta</a>
+      </div>
     </section>
   </main>
+
+  <footer class="site-footer" id="support">
+    <div class="wrap footer-layout">
+      <a class="wordmark" href="./" aria-label="PEAKFORM home">
+        <span class="mark" aria-hidden="true"></span>
+        <span>PEAK<span class="brand-accent">FORM</span></span>
+      </a>
+      <nav aria-label="Footer">
+        <a href="support.html">Support</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="mailto:edoza017@gmail.com">Contact</a>
+      </nav>
+    </div>
+  </footer>
 </body>
 </html>
